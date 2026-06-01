@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관심그룹 팝업 · ①왜 움직였을까 ②10초 요약 (인터랙션 v4)</title>
+<style>
+  :root{
+    --up:#ee342c; --down:#3583f8; --ink:#1c1c1e; --sub:#9a9ea5; --sub2:#bcc0c6;
+    --line:#eef0f2; --buy:#ee342c; --sell:#3583f8; --heart:#ff4b4b;
+    --good:#e8392b; --good-bg:#fdecec; --good-bd:#f6cdca;
+    --news:#15a85a; --news-bg:#e9f7ef; --news-bd:#bfe7cf;
+    --bad:#2f6bf6;  --bad-bg:#ebf1ff;  --bad-bd:#c9d9fb;
+    --ai:#4b6bff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Pretendard","Segoe UI",sans-serif;background:#e7e9ed;color:var(--ink);display:flex;min-height:100vh;}
+
+  /* ===== 좌측 리뷰 패널 ===== */
+  .nav{width:300px;flex:0 0 300px;background:#0f1319;color:#e7e9ee;padding:24px 18px 40px;height:100vh;position:sticky;top:0;overflow-y:auto;}
+  .nav .eyebrow{font-size:10.5px;letter-spacing:1.5px;color:#7a8497;text-transform:uppercase;font-weight:700;}
+  .nav h1{font-size:18px;margin:6px 0 6px;letter-spacing:-.3px;}
+  .nav .desc{font-size:12px;color:#8b93a3;line-height:1.6;margin:0 0 18px;}
+  .seg{display:flex;background:#1a2029;border-radius:11px;padding:4px;gap:3px;margin-bottom:16px;}
+  .seg button{flex:1;border:0;background:transparent;color:#9aa3b2;font-size:12px;font-weight:700;padding:9px 4px;border-radius:8px;cursor:pointer;transition:.15s;letter-spacing:-.2px;}
+  .seg button.on{background:#fff;color:#11151c;}
+  .ix{background:#151a21;border:1px solid #222a36;border-radius:13px;padding:14px;margin-bottom:12px;}
+  .ix h3{font-size:13.5px;margin:0 0 8px;display:flex;align-items:center;gap:7px;}
+  .ix h3 .dot{width:7px;height:7px;border-radius:50%;background:#4b6bff;}
+  .ix ul{margin:0;padding-left:0;list-style:none;}
+  .ix li{font-size:11.5px;color:#9aa3b2;line-height:1.55;padding-left:15px;position:relative;margin-bottom:6px;}
+  .ix li:before{content:"";position:absolute;left:2px;top:7px;width:5px;height:5px;border-radius:50%;background:#3a4658;}
+  .ix li b{color:#cfd6e2;font-weight:600;}
+  .nav-foot{font-size:10.5px;color:#5c6473;margin-top:18px;line-height:1.6;}
+  .kbd{background:#222a36;border-radius:5px;padding:1px 6px;font-size:10px;color:#aeb6c4;}
+  .cmptoggle{display:flex;align-items:center;gap:8px;font-size:12px;color:#cdd3dd;cursor:pointer;background:#151a21;border:1px solid #222a36;border-radius:11px;padding:11px 12px;}
+  .cmptoggle input{accent-color:#4b6bff;width:15px;height:15px;}
+  .cmpnote{color:#6b7384;font-size:10.5px;}
+
+  /* ===== 스테이지 ===== */
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;padding:30px 20px 60px;gap:13px;overflow-y:auto;height:100vh;}
+  .hint{font-size:12px;color:#6b7280;text-align:center;max-width:380px;line-height:1.5;}
+  .hint b{color:#11151c;}
+
+  /* ===== 폰 ===== */
+  .phone{width:386px;flex:0 0 auto;border-radius:44px;padding:11px;background:#0c0e12;box-shadow:0 28px 70px rgba(20,28,46,.32);}
+  .screen{position:relative;width:364px;height:789px;border-radius:34px;overflow:hidden;background:#fff;display:flex;flex-direction:column;}
+  .ref-overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;opacity:0;pointer-events:none;z-index:50;transition:opacity .15s;}
+  body.cmp .ref-overlay{opacity:.5;}
+  body.cmp .screen{outline:2px solid #4b6bff;}
+
+  .statusbar{height:30px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12.5px;font-weight:700;color:#111;}
+  .statusbar .r{display:flex;gap:5px;align-items:center;font-size:11px;color:#222;}
+  .statusbar .batt{border:1px solid #111;border-radius:4px;padding:0 3px;font-size:9px;font-weight:800;position:relative;}
+
+  .appbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:7px 15px 5px;}
+  .appbar .ic{font-size:18px;color:#222;width:22px;text-align:center;}
+  .appbar .ttl{font-size:16.5px;font-weight:800;letter-spacing:-.3px;}
+  .tabs{flex:0 0 auto;display:flex;gap:15px;padding:6px 15px 0;font-size:13px;color:#a6abb3;border-bottom:1px solid var(--line);overflow-x:auto;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tabs .tab{padding:6px 1px 9px;white-space:nowrap;position:relative;font-weight:600;}
+  .tabs .tab.on{color:#111;font-weight:800;}
+  .tabs .tab.on:after{content:"";position:absolute;left:-2px;right:-2px;bottom:-1px;height:2.5px;background:#111;border-radius:3px;}
+
+  .split{flex:1;display:flex;min-height:0;}
+  /* watch 36.3% */
+  .watch{width:132px;flex:0 0 132px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;}
+  .watch-top{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;font-size:11px;color:#7c828b;}
+  .watch-top .pill{border:1px solid #e6e8eb;border-radius:7px;padding:2px 7px;font-size:10px;display:flex;gap:4px;align-items:center;}
+  .watch-head{font-size:11px;color:#a6abb3;text-align:center;padding:4px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .watch-list{flex:1;overflow-y:auto;}
+  .watch-list::-webkit-scrollbar{display:none;}
+  .w-item{padding:9px 9px;border-bottom:1px solid #f5f6f7;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .12s;}
+  .w-item:active{background:#f6f7f9;}
+  .w-ic{width:13px;height:16px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+  .w-ic svg{display:block;}
+  .w-item .nm{font-size:12.5px;font-weight:800;letter-spacing:-.3px;line-height:1.2;}
+  .w-item .cd{font-size:9.5px;color:#aeb2b8;margin-top:3px;letter-spacing:-.2px;}
+  .w-item.sel{background:#fff6f5;box-shadow:inset 2.5px 0 0 var(--up);}
+  .w-item.sel .nm{color:var(--up);}
+  .watch-foot{font-size:10.5px;color:#8b9098;padding:8px 9px;border-top:1px solid var(--line);display:flex;gap:5px;align-items:center;}
+
+  /* ===== detail popup ===== */
+  .detail{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .d-tools{flex:0 0 auto;display:flex;align-items:center;gap:0;padding:8px 12px 5px;color:#3c3c3e;}
+  .d-tools .x{font-size:17px;font-weight:600;}
+  .d-tools .sp{flex:1;}
+  .d-tools .t{font-size:15.5px;margin-left:13px;opacity:.82;}
+  .d-tools .heart{color:var(--heart);}
+  .d-scroll{flex:1;overflow-y:auto;padding:0 13px 10px;scroll-behavior:smooth;}
+  .d-scroll::-webkit-scrollbar{width:0;}
+  .d-jong{font-size:11.5px;color:#9a9ea5;margin:3px 0 1px;}
+  .d-top{display:flex;align-items:flex-start;justify-content:space-between;}
+  .d-price{font-size:29px;font-weight:800;color:var(--up);letter-spacing:-.8px;line-height:1.04;}
+  .d-now{border:1px solid #dde0e4;border-radius:16px;font-size:11px;padding:4px 11px;color:#4a4a4c;margin-top:6px;font-weight:600;}
+  .d-delta{font-size:13.5px;color:var(--up);font-weight:800;margin-top:6px;letter-spacing:-.2px;}
+  .d-delta .arr{font-size:11px;}
+  .d-vol{font-size:11.5px;color:#aeb2b8;margin-top:3px;letter-spacing:-.2px;}
+
+  /* ===== 아이디어 슬롯 ===== */
+  .slot{margin-top:11px;}
+  .guide .slot{outline:1.4px dashed rgba(75,107,255,.5);outline-offset:4px;border-radius:10px;position:relative;}
+  .guide .slot:before{content:"아이디어 영역 (시가/고가/저가 자리)";position:absolute;top:-8px;left:6px;font-size:8px;font-weight:800;color:#4b6bff;background:#fff;padding:0 5px;}
+
+  /* card (idea container) */
+  .icard{border:1px solid #ededf0;border-radius:14px;overflow:hidden;background:#fff;}
+  .icard + .icard{margin-top:8px;}
+  .ihead{display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;user-select:none;transition:background .12s;}
+  .ihead:active{background:#fafafa;}
+  .ihead .chev{margin-left:auto;color:#c6cace;font-size:13px;transition:transform .28s cubic-bezier(.4,0,.2,1);flex:0 0 auto;}
+  .icard.open .ihead .chev{transform:rotate(90deg);}
+
+  /* idea1 head */
+  .why-h .a{font-size:13px;font-weight:800;color:var(--ai);display:flex;gap:5px;align-items:center;letter-spacing:-.3px;}
+  .why-h .sub{font-size:11.5px;color:#82868d;margin-top:3px;letter-spacing:-.2px;line-height:1.35;}
+  .why-h .tm{font-size:10.5px;color:#bcc0c6;margin-left:auto;align-self:flex-start;margin-top:2px;white-space:nowrap;}
+
+  /* idea2 head */
+  .sum-h .ttl{font-size:13.5px;font-weight:800;letter-spacing:-.3px;}
+  .sum-h .meta{font-size:11px;color:#a6abb3;margin-top:3px;display:flex;align-items:center;gap:5px;}
+  .cnts{display:flex;gap:4px;}
+
+  /* labels */
+  .label{display:inline-flex;align-items:center;border-radius:6px;font-size:11px;font-weight:800;padding:2px 7px;border:1px solid transparent;letter-spacing:-.2px;flex:0 0 auto;line-height:1.3;}
+  .label.good{color:var(--good);background:var(--good-bg);border-color:var(--good-bd);}
+  .label.news{color:var(--news);background:var(--news-bg);border-color:var(--news-bd);}
+  .label.bad{color:var(--bad);background:var(--bad-bg);border-color:var(--bad-bd);}
+  .label.sm{font-size:9.5px;padding:1px 5px;}
+
+  /* accordion body (push 차트 down) */
+  .ibody{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.4,0,.2,1);}
+  .icard.open .ibody{grid-template-rows:1fr;}
+  .ibody > .wrap{overflow:hidden;}
+  .ibody-in{padding:2px 12px 13px;}
+  .icard.open .ibody-in{animation:fadein .35s ease;}
+  @keyframes fadein{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+
+  /* idea1 body */
+  .why-body{font-size:12.5px;line-height:1.6;color:#37373a;border-top:1px solid #f3f3f4;padding-top:10px;letter-spacing:-.2px;}
+  .why-rel{display:flex;gap:7px;align-items:center;margin-top:11px;font-size:11.5px;color:#7c828b;}
+  .why-rel .dots{display:flex;}
+  .why-rel .dots span{width:18px;height:18px;border-radius:50%;margin-left:-6px;border:2px solid #fff;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;}
+  .why-rel .dots span:first-child{margin-left:0;}
+  .morelink{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--ai);font-weight:800;margin-top:12px;cursor:pointer;letter-spacing:-.2px;}
+
+  /* idea2 rows */
+  .srow{display:flex;gap:9px;align-items:flex-start;padding:11px 0;border-top:1px solid #f3f3f4;cursor:pointer;}
+  .srow:first-child{border-top:none;padding-top:10px;}
+  .srow .tx{flex:1;min-width:0;}
+  .srow .tt{font-size:12.5px;font-weight:700;line-height:1.4;letter-spacing:-.2px;color:#2a2a2c;}
+  .srow .tm{font-size:10.5px;color:#bcc0c6;margin-top:3px;}
+  .srow .arr{color:#cfd2d8;font-size:13px;transition:transform .25s;align-self:center;}
+  .srow.o .arr{transform:rotate(90deg);}
+  .srow .rsn{display:grid;grid-template-rows:0fr;transition:grid-template-rows .26s ease;}
+  .srow.o .rsn{grid-template-rows:1fr;margin-top:7px;}
+  .srow .rsn > div{overflow:hidden;}
+  .srow .rsn .in{font-size:11px;color:#73777e;line-height:1.55;background:#f7f8fa;border-radius:8px;padding:8px 10px;letter-spacing:-.2px;}
+
+  /* ===== chart (pushed down) ===== */
+  .blk{margin-top:15px;}
+  .blk .bh{display:flex;align-items:center;justify-content:space-between;}
+  .blk .bh b{font-size:14px;letter-spacing:-.3px;}
+  .blk .bh .btn{border:1px solid #e2e4e8;border-radius:9px;font-size:11px;padding:4px 10px;color:#5b5f66;font-weight:600;}
+  .chart{margin-top:9px;height:104px;position:relative;}
+  .chart-cap{font-size:10px;color:#bcc0c6;text-align:right;margin-top:3px;}
+  .commu{display:flex;align-items:center;gap:7px;font-size:12px;color:#56595f;margin-top:11px;}
+  .commu .ava{width:18px;height:18px;border-radius:50%;background:#ffdf6b;flex:0 0 auto;}
+  .commu .more{margin-left:auto;color:#cfd2d8;}
+  .newsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;font-size:12px;color:#2f2f31;}
+  .newsrow .t{color:#bcc0c6;font-size:10.5px;white-space:nowrap;}
+
+  .buybar{flex:0 0 auto;display:flex;}
+  .buybar div{flex:1;text-align:center;padding:14px 0;font-size:15.5px;font-weight:800;color:#fff;letter-spacing:1px;}
+  .buybar .buy{background:var(--buy);} .buybar .sell{background:var(--sell);}
+  .navbar{flex:0 0 auto;height:52px;background:#fcfcfd;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;font-size:9.5px;color:#868b93;padding-bottom:4px;}
+  .navbar .nv{display:flex;flex-direction:column;align-items:center;gap:3px;} .navbar .nv .i{font-size:15px;}
+  .navbar .nv.on{color:var(--up);}
+
+  .toast{position:absolute;left:50%;bottom:88px;transform:translateX(-50%) translateY(14px);background:rgba(22,24,30,.95);color:#fff;font-size:12px;padding:10px 15px;border-radius:12px;max-width:80%;text-align:center;opacity:0;pointer-events:none;transition:.24s;z-index:40;line-height:1.45;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  @media (max-width:780px){.nav{display:none;}}
+</style>
+</head>
+<body>
+  <aside class="nav">
+    <div class="eyebrow">Watchlist Popup · Quick Insight</div>
+    <h1>① 왜 움직였을까 · ② 10초 요약</h1>
+    <p class="desc">실제 팝업 룩앤필 그대로, 좁은 슬롯(시가/고가/저가 자리)에 들어가는 두 아이디어를 완성도 있게 구현했습니다. <b style="color:#cfd6e2">아코디언을 펼치면 차트·뉴스가 실제로 아래로 밀립니다.</b></p>
+
+    <div class="seg" id="seg">
+      <button data-m="1" class="on">① 왜 움직였을까</button>
+      <button data-m="2">② 10초 요약</button>
+      <button data-m="3">①+②</button>
+    </div>
+
+    <div class="ix" id="ixCard"></div>
+
+    <label class="cmptoggle"><input type="checkbox" id="cbCmp"> 실제 캡처 겹쳐보기 <span class="cmpnote">(영역 정렬 확인)</span></label>
+
+    <p class="nav-foot">상호작용 · 카드 헤더 탭 = 펼치기(차트 밀림) · 요약 행 탭 = 근거 펼치기 · 종목 탭 = 전환. <span class="kbd">C</span> 겹쳐보기 / <span class="kbd">G</span> 영역 가이드.</p>
+  </aside>
+
+  <main class="stage">
+    <div class="phone">
+      <div class="screen" id="screen">
+        <img class="ref-overlay" id="refOverlay" src="assets/screen.png" alt="실제 캡처 비교" />
+        <div class="statusbar"><div>5:52</div><div class="r"><span>📶</span><span>LTE</span><span class="batt">49</span></div></div>
+        <div class="appbar"><span class="ic">‹</span><span class="ttl">관심그룹 <span style="font-size:12px;color:#9a9ea5">⌄</span></span><span class="ic">⋮</span></div>
+        <div class="tabs"><span class="tab">보유종목</span><span class="tab">최근조회</span><span class="tab">관심그룹1</span><span class="tab on">스윙스</span><span class="tab">AI</span><span class="tab">⇄</span></div>
+        <div class="split">
+          <div class="watch">
+            <div class="watch-top"><span>총7개</span><span class="pill">통합 ☰</span></div>
+            <div class="watch-head">종목명</div>
+            <div class="watch-list" id="watchList"></div>
+            <div class="watch-foot">📰 내 관심 뉴스</div>
+          </div>
+          <div class="detail">
+            <div class="d-tools"><span class="x">✕</span><span class="sp"></span><span class="t">⚙</span><span class="t">🗑</span><span class="t">🔔</span><span class="t">🗒</span><span class="t heart">♥</span></div>
+            <div class="d-scroll" id="dScroll">
+              <div class="d-jong">증 40</div>
+              <div class="d-top">
+                <div>
+                  <div class="d-price" id="dPrice">22,300</div>
+                  <div class="d-delta" id="dDelta"><span class="arr">▲</span> 1,850 &nbsp; 9.05%</div>
+                  <div class="d-vol">621,935 &nbsp; 214.87%</div>
+                </div>
+                <div class="d-now">현재가</div>
+              </div>
+
+              <div class="slot" id="slot"></div>
+
+              <div class="blk">
+                <div class="bh"><b>차트</b><span class="btn">차트보기</span></div>
+                <div class="chart" id="chart"></div>
+                <div class="chart-cap">(일, 40개)</div>
+              </div>
+              <div class="blk">
+                <div class="bh"><b>주요뉴스</b><span class="btn">뉴스/공시</span></div>
+                <div class="commu"><span class="ava"></span><span>이byoong 주식은 매일 나락을 가…</span><span class="more">›</span></div>
+                <div class="newsrow"><span>이노테크(469610) 상승폭 확대…</span><span class="t">7시간전</span></div>
+              </div>
+            </div>
+            <div class="buybar"><div class="buy">매수</div><div class="sell">매도</div></div>
+          </div>
+        </div>
+        <div class="navbar">
+          <div class="nv"><span class="i">☰</span>메뉴</div><div class="nv"><span class="i">🏠</span>홈</div>
+          <div class="nv"><span class="i">🔍</span>주식검색</div><div class="nv on"><span class="i">★</span>관심그룹</div>
+          <div class="nv"><span class="i">📊</span>잔고·손익</div>
+        </div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+    <div class="hint" id="hint"></div>
+  </main>
+
+<script>
+/* ===== 데이터 ===== */
+const STOCKS=[
+ {nm:"미래반도체",cd:"254490",dir:"up",pc:"+3.21%",price:"18,400"},
+ {nm:"이노테크",cd:"469610",dir:"up",pc:"+9.05%",price:"22,300",sel:true},
+ {nm:"케이엔제이",cd:"272110",dir:"flat",pc:"+0.42%",price:"14,950"},
+ {nm:"엘티씨",cd:"170920",dir:"up",pc:"+2.10%",price:"31,200"},
+ {nm:"#원텍",cd:"336570",dir:"down",pc:"-1.84%",price:"9,870"},
+ {nm:"오이솔루션",cd:"138080",dir:"up",pc:"+5.63%",price:"27,450"},
+ {nm:"AP시스템",cd:"265520",dir:"down",pc:"-0.77%",price:"24,100"},
+];
+
+/* ===== 워치리스트 아이콘(미니 캔들) ===== */
+function candleIcon(dir){
+  const c = dir==='down'? '#3583f8' : dir==='flat' ? '#b0b4ba' : '#ee342c';
+  return `<svg width="13" height="16" viewBox="0 0 13 16"><line x1="6.5" y1="1" x2="6.5" y2="15" stroke="${c}" stroke-width="1.4"/><rect x="3" y="5" width="7" height="6" rx="1" fill="${c}"/></svg>`;
+}
+const watchList=document.getElementById('watchList');
+STOCKS.forEach(s=>{
+  const el=document.createElement('div');el.className='w-item'+(s.sel?' sel':'');
+  el.innerHTML=`<span class="w-ic">${candleIcon(s.dir)}</span><div><div class="nm">${s.nm}</div><div class="cd">KOSDAQ ${s.cd}</div></div>`;
+  el.onclick=()=>{document.querySelectorAll('.w-item').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');switchStock(s);};
+  watchList.appendChild(el);
+});
+function switchStock(s){
+  const col=s.dir==='down'?'var(--down)':(s.dir==='flat'?'#7b7f86':'var(--up)');
+  const dp=document.getElementById('dPrice');dp.textContent=s.price;dp.style.color=col;
+  const dd=document.getElementById('dDelta');dd.style.color=col;
+  const arr=s.dir==='down'?'▼':(s.dir==='flat'?'·':'▲');dd.innerHTML=`<span class="arr">${arr}</span> ${s.pc}`;
+  toast(`<b>${s.nm}</b> 종목으로 전환했어요`);
+}
+
+/* ===== 차트 (레퍼런스 형태: 저→고→저→소폭 반등) ===== */
+function drawChart(){
+  const seq=[14,17,13,19,16,22,20,27,33,30,38,46,55,64,58,49,44,52,46,40,35,30,34,29,25,31,27,23,28,33,40,36,31,38,45,52,47,42,49,57];
+  let out='';let x=2;const base=96;const w=6.6;
+  seq.forEach((h,i)=>{const prev=seq[i-1]??h;const col=h>=prev?'#ee342c':'#3583f8';
+    const top=base-h*1.18;const bh=Math.max(3,Math.abs(h-prev)*1.1+5);
+    out+=`<line x1="${x+w/2}" y1="${top-3}" x2="${x+w/2}" y2="${top+bh+3}" stroke="${col}" stroke-width="1"/><rect x="${x}" y="${top}" width="${w-1.6}" height="${bh}" rx="0.5" fill="${col}"/>`;
+    x+=w;});
+  document.getElementById('chart').innerHTML=`<svg viewBox="0 0 ${x} 104" width="100%" height="100%" preserveAspectRatio="none">${out}</svg>`;
+}
+drawChart();
+
+/* ===== 토스트 ===== */
+let tt;function toast(m){const t=document.getElementById('toast');t.innerHTML=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2000);}
+
+/* ===== 아이디어 콘텐츠 ===== */
+function ideaWhy(open){
+  return `<div class="icard why${open?' open':''}" data-acc="why">
+    <div class="ihead why-h">
+      <div style="min-width:0">
+        <div class="a">✦ 왜 올랐을까?</div>
+        <div class="sub">어닝 서프라이즈 + 외국인·기관 순매수</div>
+      </div>
+      <div class="tm">48분 전</div>
+      <span class="chev">›</span>
+    </div>
+    <div class="ibody"><div class="wrap"><div class="ibody-in">
+      <div class="why-body">이노테크가 <b>1분기 매출 198억·순이익 47억</b>으로 시장 컨센서스를 18% 상회했고, 같은 날 외국인·기관이 동시 순매수하며 수급이 강하게 들어왔어요.</div>
+      <div class="why-rel"><span class="dots"><span style="background:#ffb300">미</span><span style="background:#26a69a">오</span><span style="background:#5c6bc0">A</span></span>미래반도체 외 3개 종목과 연관</div>
+      <div class="morelink" onclick="event.stopPropagation();toast('등락원인 리포트로 이동합니다')">자세히 보기 <span>›</span></div>
+    </div></div></div>
+  </div>`;
+}
+function ideaSum(open){
+  const items=[
+    {l:'good',t:'순이익이 4분기 연속 흑자예요.',tm:'48분 전',r:'2025년 2분기 흑자 전환 후 4개 분기 연속 흑자. 누적 순이익 162억으로 전년 적자에서 턴어라운드했어요.'},
+    {l:'good',t:'장 초반에 +9.0% 급등세를 보였어요.',tm:'3시간 전',r:'09:05 기준 +9.05%, 거래대금 코스닥 30위권 진입. 최근 5거래일 중 3일 상승.'},
+    {l:'news',t:'최근 거래량이 6배 이상 증가했어요.',tm:'45분 전',r:'5일 평균 거래량 대비 약 6.0배. 단기 수급 쏠림 신호로 변동성이 커질 수 있어요.'},
+    {l:'bad',t:'PER이 업종 평균보다 높아요.',tm:'1시간 전',r:'현재 PER 38.2배로 반도체 소재 업종 평균(22.5배) 대비 고평가 구간이에요.'},
+  ];
+  const rows=items.map(it=>`<div class="srow" data-row>
+      <span class="label ${it.l}">${it.l==='good'?'호재':it.l==='bad'?'악재':'소식'}</span>
+      <div class="tx"><div class="tt">${it.t}</div><div class="tm">${it.tm}</div>
+        <div class="rsn"><div><div class="in">${it.r}</div></div></div></div>
+      <span class="arr">›</span></div>`).join('');
+  return `<div class="icard sum${open?' open':''}" data-acc="sum">
+    <div class="ihead sum-h">
+      <div>
+        <div class="ttl">10초 요약</div>
+        <div class="meta">호재·악재 기준 ⓘ<span class="cnts"><span class="label good sm">호재 2</span><span class="label news sm">소식 1</span><span class="label bad sm">악재 1</span></span></div>
+      </div>
+      <span class="chev">›</span>
+    </div>
+    <div class="ibody"><div class="wrap"><div class="ibody-in">${rows}</div></div></div>
+  </div>`;
+}
+
+/* ===== 렌더 ===== */
+let mode='1';
+const slot=document.getElementById('slot');
+function render(){
+  if(mode==='1') slot.innerHTML=ideaWhy(true);
+  else if(mode==='2') slot.innerHTML=ideaSum(false);
+  else slot.innerHTML=ideaWhy(false)+ideaSum(false);
+  renderIx();
+}
+
+/* ===== 좌측 설명 ===== */
+function renderIx(){
+  const c=document.getElementById('ixCard');
+  const data={
+    '1':{h:'① 왜 움직였을까?',li:['<b>한 줄 AI 등락원인</b> — 토스 "왜 움직였을까"를 우리 슬롯 크기에 맞춤','접힘 기본 = 원인 한 줄만, <b>차트는 그대로 노출</b>','펼치면 상세 + 연관종목, 차트는 아래로 밀림','단일 카드라 슬롯을 가장 적게 차지']},
+    '2':{h:'② 10초 요약',li:['<b>호재·악재 라벨 리스트</b> — 카운트(호재2·악재1)를 접힘 헤더에 노출','카드 펼치면 4개 항목, <b>행을 또 탭하면 근거</b>가 펼쳐지는 2단 아코디언','스와이프 없이 탭만 → 관심그룹 가로 스와이프와 충돌 없음']},
+    '3':{h:'①+② 함께',li:['두 카드 모두 <b>접힘 기본</b> → 슬롯 안에 나란히','원인(요점) + 요약(근거) 역할 분담','하나 펼치면 차트가 그만큼 내려가고, 접으면 복귀']},
+  }[mode];
+  c.innerHTML=`<h3><span class="dot"></span>${data.h}</h3><ul>${data.li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  const hints={'1':'카드 헤더를 탭해 <b>접고/펼쳐</b> 보세요. 펼치면 아래 차트가 실제로 내려갑니다.',
+    '2':'카드를 펼친 뒤 <b>각 호재/악재 행</b>을 탭하면 근거가 2단으로 펼쳐집니다.',
+    '3':'두 카드를 번갈아 펼쳐 보세요. 차트가 그만큼 밀렸다 돌아옵니다.'};
+  document.getElementById('hint').innerHTML=hints[mode];
+}
+
+/* ===== 인터랙션 ===== */
+slot.addEventListener('click',e=>{
+  const row=e.target.closest('[data-row]');
+  if(row){row.classList.toggle('o');return;}
+  const head=e.target.closest('.ihead');
+  if(head){head.closest('.icard').classList.toggle('open');}
+});
+
+document.getElementById('seg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  mode=b.dataset.m;
+  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b));
+  render();
+  document.getElementById('dScroll').scrollTop=0;
+});
+
+/* 겹쳐보기 토글 */
+const cbCmp=document.getElementById('cbCmp');
+cbCmp.addEventListener('change',e=>document.body.classList.toggle('cmp',e.target.checked));
+document.addEventListener('keydown',e=>{
+  if(e.key==='g'||e.key==='G')document.body.classList.toggle('guide');
+  if(e.key==='c'||e.key==='C'){cbCmp.checked=!cbCmp.checked;document.body.classList.toggle('cmp',cbCmp.checked);}
+});
+
+render();
+</script>
+</body>
+</html>

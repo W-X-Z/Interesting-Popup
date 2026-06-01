@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관심그룹 팝업 · 빠른 종목정보 프로토타입 모음</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Pretendard","Segoe UI",sans-serif;background:#0d1017;color:#e8eaf0;min-height:100vh;}
+  .wrap{max-width:920px;margin:0 auto;padding:64px 22px 80px;}
+  .eyebrow{font-size:12px;letter-spacing:2px;color:#5f6b80;text-transform:uppercase;font-weight:700;}
+  h1{font-size:30px;margin:10px 0 10px;letter-spacing:-.6px;line-height:1.2;}
+  .lead{font-size:15px;color:#9aa3b4;line-height:1.7;max-width:660px;margin:0 0 38px;}
+  .lead b{color:#cfd6e3;}
+
+  .grid{display:flex;flex-direction:column;gap:16px;}
+  .card{display:flex;gap:20px;align-items:stretch;background:#151a23;border:1px solid #232b39;border-radius:18px;padding:20px 22px;text-decoration:none;color:inherit;transition:.16s;position:relative;overflow:hidden;}
+  .card:hover{background:#1a212c;border-color:#3a4a66;transform:translateY(-2px);}
+  .card .num{font-size:13px;font-weight:800;color:#7f8ca3;background:#222a38;border-radius:9px;min-width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .card.latest .num{background:#ff2e3f;color:#fff;}
+  .card .body{flex:1;min-width:0;}
+  .card .tt{font-size:18px;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .badge{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:6px;letter-spacing:.2px;}
+  .badge.new{background:#2a1116;color:#ff8a93;border:1px solid #5a2730;}
+  .badge.ver{background:#13202f;color:#6fb0ff;border:1px solid #28415f;}
+  .card .ds{font-size:13.5px;color:#97a1b3;line-height:1.6;margin-top:7px;}
+  .card .meta{font-size:12px;color:#5f6b80;margin-top:11px;display:flex;gap:14px;flex-wrap:wrap;}
+  .card .meta span{display:inline-flex;align-items:center;gap:5px;}
+  .card .go{align-self:center;color:#5f6b80;font-size:22px;flex:0 0 auto;}
+  .card:hover .go{color:#8fa3c4;}
+
+  .foot{margin-top:46px;border-top:1px solid #1e2530;padding-top:22px;font-size:12.5px;color:#6b7488;line-height:1.7;}
+  .foot a{color:#7fa6e6;text-decoration:none;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .chips span{font-size:11px;color:#8b93a3;background:#161c25;border:1px solid #232b39;border-radius:20px;padding:5px 11px;}
+  @media (max-width:560px){.card{flex-direction:column;gap:12px;} .card .go{display:none;} h1{font-size:24px;}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="eyebrow">Watchlist Popup · Quick Insight</div>
+    <h1>관심그룹 팝업 — 빠른 종목정보 프로토타입</h1>
+    <p class="lead">토스·카카오페이의 “10초 요약 / 왜 움직였을까” 컨셉을 우리 앱 <b>관심그룹 팝업</b>에 적용한 아이디어와 인터랙션을 단계별로 정리했습니다. 아래에서 버전을 골라 직접 만져보세요.</p>
+
+    <div class="grid">
+      <a class="card latest" href="./v3/">
+        <div class="num">v3</div>
+        <div class="body">
+          <div class="tt">최근 소식 카드 <span class="badge new">최신 · 추천</span></div>
+          <div class="ds">기존 앱 화면 룩앤필을 그대로 살리고, 팝업 안 <b style="color:#cdd6e3">‘최근 소식’</b> 카드만 자연스러운 접힘/펼침으로 개발. 펼치면 차트가 실제로 아래로 밀리고, 항목별 근거가 2단으로 열립니다.</div>
+          <div class="meta"><span>📐 실측 영역</span><span>🔴 호재·소식·악재 라벨</span><span>↕ 아코디언 푸시</span></div>
+        </div>
+        <div class="go">›</div>
+      </a>
+
+      <a class="card" href="./v2/">
+        <div class="num">v2</div>
+        <div class="body">
+          <div class="tt">①왜 움직였을까 · ②10초 요약 <span class="badge ver">인터랙션</span></div>
+          <div class="ds">두 핵심 아이디어를 완성도 높게. 카드 헤더 탭 = 펼치기, 요약 행 탭 = 근거 2단 펼치기. <b style="color:#cdd6e3">‘실제 캡처 겹쳐보기’</b> 토글로 영역이 실제 화면과 일치하는지 확인할 수 있습니다.</div>
+          <div class="meta"><span>① + ② + 조합</span><span>🟦 겹쳐보기(C)</span><span>탭 전환</span></div>
+        </div>
+        <div class="go">›</div>
+      </a>
+
+      <a class="card" href="./v1/">
+        <div class="num">v1</div>
+        <div class="body">
+          <div class="tt">아이디어 13종 탐색 <span class="badge ver">아이데이션</span></div>
+          <div class="ds">왜 움직였을까 · 10초 요약 · 지금 이슈 · 투자매력 점수 · AI 브리핑 · 목표주가 밴드 · 재무 한장 · 수급 시그널 · 히트맵 · 연관종목 · 이벤트 마커 · 커뮤니티 온도 · 스마트 알림 — 13개를 한 화면에서 비교.</div>
+          <div class="meta"><span>13 ideas</span><span>좌측 네비로 전환</span><span>클릭·스와이프·토스트</span></div>
+        </div>
+        <div class="go">›</div>
+      </a>
+    </div>
+
+    <div class="foot">
+      레퍼런스(이노테크 469610) 기반 더미 데이터 프로토타입입니다. 소스: <a href="https://github.com/W-X-Z/Interesting-Popup">github.com/W-X-Z/Interesting-Popup</a>
+      <div class="chips"><span>최우선: 등락원인·요약</span><span>가치·재무·밸류</span><span>수급·탐색·커뮤니티</span></div>
+    </div>
+  </div>
+</body>
+</html>

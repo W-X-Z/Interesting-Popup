@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관심그룹 팝업 · 빠른 종목정보 아이디어 프로토타입</title>
+<style>
+  :root{
+    --up:#e8392b; --down:#1a6dff; --ink:#191919; --sub:#8b8f96;
+    --line:#ededed; --bg:#f4f5f7; --chip:#f1f3f5;
+    --good:#e8392b; --good-bg:#fdeceb; --news:#1aaf5d; --news-bg:#e8f7ee;
+    --bad:#1a6dff; --bad-bg:#eaf1ff; --brand:#ff2e3f;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;
+    background:#e9ebee; color:var(--ink);
+    display:flex; min-height:100vh;
+  }
+  /* ===== 좌측 아이디어 네비 ===== */
+  .nav{
+    width:300px; flex:0 0 300px; background:#11151c; color:#e7e9ee;
+    padding:22px 18px 40px; overflow-y:auto; height:100vh; position:sticky; top:0;
+  }
+  .nav h1{font-size:17px; margin:0 0 4px; letter-spacing:-.3px;}
+  .nav .desc{font-size:12px; color:#8b93a3; line-height:1.5; margin:0 0 18px;}
+  .nav .grp{font-size:11px; color:#6b7384; margin:18px 0 8px; letter-spacing:.5px; text-transform:uppercase;}
+  .nav-item{
+    display:flex; gap:10px; align-items:flex-start; padding:10px 11px; border-radius:11px;
+    cursor:pointer; margin-bottom:5px; border:1px solid transparent; transition:.15s;
+  }
+  .nav-item:hover{background:#1b212c;}
+  .nav-item.active{background:#222c3c; border-color:#36507d;}
+  .nav-item .no{font-size:11px; font-weight:700; background:#2a3340; color:#9fb4d6; border-radius:6px; min-width:22px; height:20px; display:flex; align-items:center; justify-content:center; margin-top:1px;}
+  .nav-item.active .no{background:var(--brand); color:#fff;}
+  .nav-item .t{font-size:13px; font-weight:600; line-height:1.35;}
+  .nav-item .s{font-size:11px; color:#828b9b; line-height:1.4; margin-top:2px;}
+  .nav-foot{font-size:11px; color:#5c6473; margin-top:24px; line-height:1.5;}
+
+  /* ===== 스테이지 ===== */
+  .stage{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:34px 20px 60px; gap:14px; overflow-y:auto; height:100vh;}
+  .stage-title{font-size:13px; color:#5b626e; text-align:center;}
+  .stage-title b{color:#11151c;}
+
+  /* ===== 폰 ===== */
+  .phone{
+    width:392px; height:806px; background:#fff; border-radius:42px; position:relative;
+    box-shadow:0 30px 70px rgba(20,28,46,.28), 0 0 0 11px #0d0f13, 0 0 0 13px #2a2d34;
+    overflow:hidden; flex:0 0 auto;
+  }
+  .screen{position:absolute; inset:0; border-radius:42px; overflow:hidden; display:flex; flex-direction:column; background:#fff;}
+
+  /* statusbar */
+  .statusbar{height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12.5px; font-weight:600; color:#111; flex:0 0 auto;}
+  .statusbar .r{display:flex; gap:5px; align-items:center; font-size:11px;}
+  .statusbar .batt{background:#111; color:#fff; border-radius:5px; padding:1px 5px; font-size:10px; font-weight:700;}
+
+  /* app header */
+  .appbar{display:flex; align-items:center; justify-content:space-between; padding:6px 16px 4px; flex:0 0 auto;}
+  .appbar .ttl{font-size:17px; font-weight:700; display:flex; gap:4px; align-items:center;}
+  .appbar .ic{font-size:18px; color:#222; width:24px; text-align:center;}
+  .tabs{display:flex; gap:14px; padding:6px 16px 0; font-size:13.5px; color:#9aa0a8; border-bottom:1px solid var(--line); flex:0 0 auto; overflow-x:auto;}
+  .tabs .tab{padding:6px 1px 9px; white-space:nowrap; position:relative;}
+  .tabs .tab.on{color:#111; font-weight:700;}
+  .tabs .tab.on:after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:2.5px; background:#111; border-radius:3px;}
+
+  /* body split */
+  .split{flex:1; display:flex; min-height:0;}
+  .watch{width:132px; flex:0 0 132px; border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0;}
+  .watch-top{display:flex; align-items:center; justify-content:space-between; padding:7px 10px; font-size:11px; color:#7c828b;}
+  .watch-top .pill{border:1px solid #e3e5e8; border-radius:7px; padding:2px 7px; font-size:10.5px; display:flex; gap:3px; align-items:center;}
+  .watch-head{font-size:11px; color:#9aa0a8; text-align:center; padding:3px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .watch-list{flex:1; overflow-y:auto;}
+  .w-item{padding:9px 10px; border-bottom:1px solid #f4f4f5; cursor:pointer; display:flex; gap:7px; align-items:flex-start;}
+  .w-item .bar{width:3px; align-self:stretch; border-radius:3px; background:#d7dadf;}
+  .w-item.up .bar{background:var(--up);} .w-item.down .bar{background:var(--down);}
+  .w-item .nm{font-size:13px; font-weight:700; letter-spacing:-.3px;}
+  .w-item .cd{font-size:10.5px; color:#a3a8af; margin-top:2px;}
+  .w-item.sel{background:#fff5f5;}
+  .w-item.sel .nm{color:var(--brand);}
+  .watch-foot{font-size:11px; color:#8b9098; padding:8px 10px; border-top:1px solid var(--line); display:flex; align-items:center; gap:5px;}
+
+  /* detail popup */
+  .detail{flex:1; display:flex; flex-direction:column; min-width:0; background:#fff;}
+  .d-tools{display:flex; align-items:center; gap:14px; padding:9px 13px 6px; color:#3a3a3a; font-size:16px;}
+  .d-tools .sp{flex:1;}
+  .d-tools .heart{color:var(--brand);}
+  .d-scroll{flex:1; overflow-y:auto; padding:0 13px 8px;}
+  .d-jong{font-size:12px; color:#888; margin:2px 0 2px;}
+  .d-price-row{display:flex; align-items:flex-start; justify-content:space-between;}
+  .d-price{font-size:30px; font-weight:800; color:var(--up); letter-spacing:-.5px; line-height:1.05;}
+  .d-now{border:1px solid #dcdee2; border-radius:16px; font-size:11px; padding:3px 9px; color:#444; margin-top:6px;}
+  .d-delta{font-size:13.5px; color:var(--up); font-weight:700; margin-top:5px;}
+  .d-vol{font-size:12px; color:#9aa0a8; margin-top:3px;}
+
+  /* idea mount */
+  #ideaMount{margin-top:11px;}
+
+  /* chart block (shared) */
+  .blk-chart{margin-top:12px;}
+  .blk-chart .h{display:flex; align-items:center; justify-content:space-between;}
+  .blk-chart .h b{font-size:14px;}
+  .blk-chart .h .btn{border:1px solid #e0e2e6; border-radius:8px; font-size:11px; padding:3px 9px; color:#555;}
+  .chart-img{margin-top:8px; height:96px; border-radius:8px; position:relative; overflow:hidden;}
+  .chart-cap{font-size:10.5px; color:#aaa; text-align:right; margin-top:2px;}
+  .blk-news{margin-top:14px;}
+  .blk-news .h{display:flex; align-items:center; justify-content:space-between;}
+  .blk-news .h b{font-size:14px;}
+  .blk-news .row{font-size:12.5px; color:#333; margin-top:8px; display:flex; justify-content:space-between; gap:8px;}
+  .blk-news .row .t{color:#aab; font-size:11px; white-space:nowrap;}
+
+  .buybar{display:flex; flex:0 0 auto;}
+  .buybar div{flex:1; text-align:center; padding:15px 0; font-size:16px; font-weight:800; color:#fff;}
+  .buybar .buy{background:var(--up);} .buybar .sell{background:#2f6bff;}
+
+  .navbar{height:58px; background:#fafbfc; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-around; flex:0 0 auto; font-size:10px; color:#7a808a; padding-bottom:6px;}
+  .navbar .nv{display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .navbar .nv .i{font-size:15px;}
+
+  /* ===== 공통 아이디어 UI ===== */
+  .label{display:inline-flex; align-items:center; border-radius:7px; font-size:11px; font-weight:700; padding:2px 7px; flex:0 0 auto;}
+  .label.good{color:var(--good); background:var(--good-bg);}
+  .label.news{color:var(--news); background:var(--news-bg);}
+  .label.bad{color:var(--bad); background:var(--bad-bg);}
+
+  /* idea1 why */
+  .why{border:1px solid #eee; border-radius:14px; padding:13px; background:linear-gradient(180deg,#fff,#fafbff);}
+  .why .top{display:flex; justify-content:space-between; align-items:center;}
+  .why .ai{font-size:13px; font-weight:800; color:#3b5bff; display:flex; gap:5px; align-items:center;}
+  .why .tm{font-size:11px; color:#aab;}
+  .why .body{font-size:14px; line-height:1.5; margin-top:8px; font-weight:600; letter-spacing:-.2px;}
+  .why .rel{display:flex; gap:6px; align-items:center; margin-top:10px; font-size:11.5px; color:#777;}
+  .why .rel .dots span{display:inline-block; width:18px; height:18px; border-radius:50%; margin-left:-6px; border:2px solid #fff;}
+  .more{text-align:center; font-size:12.5px; color:#666; padding:11px 0 3px; border-top:1px dashed #eee; margin-top:11px; cursor:pointer;}
+  .why .detailmore{font-size:12.5px; color:#555; line-height:1.55; margin-top:10px; padding-top:10px; border-top:1px dashed #eee; display:none;}
+  .why.open .detailmore{display:block;}
+
+  /* section title shared */
+  .sec-h{display:flex; align-items:center; justify-content:space-between; margin:2px 0 9px;}
+  .sec-h b{font-size:15px; letter-spacing:-.3px;}
+  .sec-h .q{width:15px;height:15px;border-radius:50%;background:#e9eaed;color:#999;font-size:10px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;}
+  .sec-h .meta{font-size:11px; color:#aab;}
+
+  /* idea2 10sec */
+  .sum10 .item{display:flex; gap:9px; align-items:flex-start; padding:11px 2px; border-top:1px solid #f2f2f2; cursor:pointer;}
+  .sum10 .item:first-of-type{border-top:none;}
+  .sum10 .item .txt{flex:1; font-size:13px; line-height:1.45; font-weight:600;}
+  .sum10 .item .tm{font-size:11px; color:#aab; margin-top:3px; font-weight:400;}
+  .sum10 .item .arr{color:#cfd2d8; font-size:14px; align-self:center;}
+  .sum10 .item .reason{font-size:12px; color:#777; line-height:1.5; margin-top:6px; display:none; background:#f7f8fa; border-radius:8px; padding:8px 10px;}
+  .sum10 .item.open .reason{display:block;}
+
+  /* idea3 gauge */
+  .score{border:1px solid #eee; border-radius:14px; padding:14px;}
+  .score .top{display:flex; align-items:center; gap:14px;}
+  .gauge{width:96px;height:96px;flex:0 0 auto;position:relative;}
+  .gauge .v{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .gauge .v b{font-size:26px; font-weight:800;}
+  .gauge .v small{font-size:10px; color:#999;}
+  .score .top .desc{font-size:12.5px; color:#555; line-height:1.5;}
+  .score .top .desc b{color:#111;}
+  .bars{margin-top:13px; display:flex; flex-direction:column; gap:10px;}
+  .bar-row{cursor:pointer;}
+  .bar-row .lab{display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;}
+  .bar-row .lab .vv{font-weight:700;}
+  .track{height:7px; background:#eef0f3; border-radius:5px; overflow:hidden;}
+  .track i{display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,#ff8a3d,#ff2e3f);}
+
+  /* idea4 supply */
+  .supply .card{border:1px solid #eee; border-radius:13px; padding:12px 13px; display:flex; align-items:center; gap:11px; margin-bottom:9px;}
+  .supply .card .ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;}
+  .supply .card .ic.f{background:#eaf1ff;} .supply .card .ic.g{background:#fdeceb;} .supply .card .ic.p{background:#f0f0f5;}
+  .supply .card .t{font-size:13px; font-weight:700;}
+  .supply .card .s{font-size:11.5px; color:#8b9098; margin-top:2px;}
+  .streak{display:flex; gap:3px; margin-top:6px;}
+  .streak i{width:11px;height:18px;border-radius:3px;background:#e9ebef;}
+  .streak i.buy{background:var(--up);} .streak i.sell{background:var(--down);}
+
+  /* idea5 heatmap */
+  .heat{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .heat .tile{border-radius:11px; padding:11px 11px 12px; color:#fff; cursor:pointer; position:relative; overflow:hidden;}
+  .heat .tile .nm{font-size:13px; font-weight:800;}
+  .heat .tile .pc{font-size:15px; font-weight:800; margin-top:7px;}
+  .heat .tile .dl{font-size:10.5px; opacity:.92; margin-top:1px;}
+  .heat .tile .tag{position:absolute; top:9px; right:9px; font-size:9px; background:rgba(255,255,255,.25); border-radius:5px; padding:1px 5px;}
+
+  /* idea6 story */
+  .story{border-radius:16px; overflow:hidden; position:relative; height:330px; background:#11151c; color:#fff;}
+  .story .prog{position:absolute; top:10px; left:12px; right:12px; display:flex; gap:5px; z-index:3;}
+  .story .prog i{flex:1; height:3px; background:rgba(255,255,255,.3); border-radius:3px; overflow:hidden;}
+  .story .prog i b{display:block; height:100%; width:0; background:#fff;}
+  .story .slide{position:absolute; inset:0; padding:34px 20px 22px; display:none; flex-direction:column;}
+  .story .slide.on{display:flex;}
+  .story .slide .kicker{font-size:12px; opacity:.8; font-weight:700; display:flex; gap:6px; align-items:center;}
+  .story .slide h3{font-size:23px; line-height:1.3; margin:14px 0 0; letter-spacing:-.4px;}
+  .story .slide p{font-size:13.5px; line-height:1.6; opacity:.86; margin-top:12px;}
+  .story .slide .big{font-size:46px; font-weight:800; margin-top:auto;}
+  .story .tapL,.story .tapR{position:absolute; top:0; bottom:0; width:38%; z-index:2; cursor:pointer;}
+  .story .tapL{left:0;} .story .tapR{right:0;}
+  .story .hint{position:absolute; bottom:14px; left:0; right:0; text-align:center; font-size:11px; opacity:.6; z-index:1;}
+
+  /* idea7 issues (kakao) */
+  .issues .it{display:flex; gap:11px; align-items:center; padding:12px 2px; border-top:1px solid #f2f2f2; cursor:pointer;}
+  .issues .it:first-of-type{border-top:none;}
+  .issues .it .ic{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto;}
+  .issues .it .ic.u{background:#fdeceb;} .issues .it .ic.d{background:#eaf1ff;} .issues .it .ic.n{background:#fff3e0;} .issues .it .ic.k{background:#e8f7ee;}
+  .issues .it .tx{flex:1; font-size:13px; font-weight:600; line-height:1.4;}
+  .issues .it .arr{color:#cfd2d8;}
+
+  /* idea8 target band */
+  .band{border:1px solid #eee; border-radius:14px; padding:16px 14px 14px;}
+  .band .nums{display:flex; justify-content:space-between; font-size:11px; color:#9aa0a8; margin-bottom:6px;}
+  .band .track{height:10px; background:linear-gradient(90deg,#eaf1ff,#fff3e0,#fdeceb); border-radius:6px; position:relative; margin:18px 0 8px;}
+  .band .now{position:absolute; top:-7px; width:2px; height:24px; background:#111;}
+  .band .now:after{content:"현재가"; position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:9px; background:#111; color:#fff; padding:1px 5px; border-radius:5px; white-space:nowrap;}
+  .band .tgt{position:absolute; top:-4px; width:14px;height:14px;border-radius:50%; background:#fff; border:3px solid #3b5bff; transform:translateX(-50%);}
+  .band .cap{display:flex; justify-content:space-between; font-size:12px; margin-top:14px;}
+  .band .cap .up{color:var(--up); font-weight:800;}
+
+  /* idea9 related */
+  .related{display:flex; flex-wrap:wrap; gap:7px;}
+  .rchip{border:1px solid #e6e8ec; border-radius:20px; padding:7px 12px; font-size:12.5px; display:flex; gap:6px; align-items:center; cursor:pointer; background:#fff;}
+  .rchip .d{font-size:11px; font-weight:700;}
+  .rchip .d.up{color:var(--up);} .rchip .d.down{color:var(--down);}
+
+  /* idea10 event chart */
+  .evchart{border:1px solid #eee; border-radius:14px; padding:12px;}
+  .evwrap{position:relative; height:120px; margin-top:4px;}
+  .evmark{position:absolute; width:22px;height:22px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:11px; color:#fff; cursor:pointer; transform:translate(-50%,-50%); border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.18); z-index:2;}
+  .evtip{font-size:12px; color:#555; line-height:1.5; margin-top:10px; background:#f7f8fa; border-radius:9px; padding:10px 12px; min-height:38px;}
+  .evtip b{color:#111;}
+
+  /* idea11 financial */
+  .fin{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .fin .cell{border:1px solid #eee; border-radius:12px; padding:11px 12px;}
+  .fin .cell .k{font-size:11px; color:#9aa0a8;}
+  .fin .cell .v{font-size:17px; font-weight:800; margin-top:3px;}
+  .fin .cell .cmp{font-size:10.5px; margin-top:3px;}
+  .fin .cell .cmp.good{color:var(--news);} .fin .cell .cmp.bad{color:var(--down);}
+
+  /* idea12 community */
+  .commu .meter{height:9px; border-radius:6px; background:linear-gradient(90deg,#1a6dff,#cfd3da 50%,#e8392b); position:relative; margin:14px 0 6px;}
+  .commu .meter .pin{position:absolute; top:-6px; width:4px; height:21px; background:#111; border-radius:3px;}
+  .commu .scale{display:flex; justify-content:space-between; font-size:10.5px; color:#9aa0a8;}
+  .commu .kw{display:flex; flex-wrap:wrap; gap:7px; margin-top:14px;}
+  .commu .kw span{background:#f1f3f5; border-radius:16px; padding:6px 11px; font-size:12px; cursor:pointer;}
+  .commu .kw span b{color:var(--brand);}
+
+  /* idea13 alert */
+  .alert .row{border:1px solid #eee; border-radius:12px; padding:12px 13px; display:flex; align-items:center; gap:11px; margin-bottom:9px; cursor:pointer;}
+  .alert .row .ic{font-size:18px;}
+  .alert .row .t{flex:1; font-size:13px; font-weight:600; line-height:1.4;}
+  .alert .row .add{font-size:12px; color:#3b5bff; font-weight:700; white-space:nowrap;}
+  .alert .row.done{background:#f3f9f4; border-color:#bfe6c8;}
+  .alert .row.done .add{color:var(--news);}
+
+  /* tag cloud (frame3 baseline shown as idea0 ref) */
+  .cloud{display:flex; flex-wrap:wrap; gap:6px;}
+  .cloud span{border-radius:16px; padding:5px 11px; font-size:12px; font-weight:600;}
+
+  /* toast */
+  .toast{position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(20px); background:rgba(20,22,28,.94); color:#fff; font-size:12.5px; padding:11px 16px; border-radius:12px; max-width:300px; text-align:center; opacity:0; pointer-events:none; transition:.28s; z-index:50; line-height:1.45;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .pill-note{font-size:11px; color:#9aa0a8; text-align:center; margin-top:10px;}
+  @media (max-width:760px){ .nav{display:none;} .stage{padding:14px 8px 40px;} .phone{transform:scale(.92); transform-origin:top center;} }
+</style>
+</head>
+<body>
+  <!-- ===== 좌측 네비 ===== -->
+  <aside class="nav">
+    <h1>관심그룹 팝업 · 빠른 종목정보</h1>
+    <p class="desc">토스·카카오페이의 "10초 요약 / 왜 움직였을까" 컨셉을 우리 앱 관심그룹 팝업에 적용한 아이디어 13종. 항목을 누르면 팝업 내부가 바뀌고, 각 화면에서 실제 클릭·스와이프가 동작합니다.</p>
+    <div class="grp">최우선 (등락원인·요약)</div>
+    <div id="navList"></div>
+    <p class="nav-foot">데이터는 레퍼런스(이노테크 469610) 기반 더미입니다. 폰 안의 요소를 직접 눌러보세요.</p>
+  </aside>
+
+  <!-- ===== 스테이지 ===== -->
+  <main class="stage">
+    <div class="stage-title" id="stageTitle"></div>
+    <div class="phone">
+      <div class="screen">
+        <!-- status bar -->
+        <div class="statusbar">
+          <div>5:52</div>
+          <div class="r"><span>📶</span><span>LTE</span><span class="batt">49</span></div>
+        </div>
+        <!-- app bar -->
+        <div class="appbar">
+          <span class="ic">‹</span>
+          <span class="ttl">관심그룹 <span style="font-size:13px;color:#888;">⌄</span></span>
+          <span class="ic">⋮</span>
+        </div>
+        <div class="tabs">
+          <span class="tab">보유종목</span>
+          <span class="tab">최근조회</span>
+          <span class="tab">관심그룹1</span>
+          <span class="tab on">스윙스</span>
+          <span class="tab">AI</span>
+        </div>
+
+        <div class="split">
+          <!-- watchlist -->
+          <div class="watch">
+            <div class="watch-top"><span>총7개</span><span class="pill">통합 ☰</span></div>
+            <div class="watch-head">종목명</div>
+            <div class="watch-list" id="watchList"></div>
+            <div class="watch-foot">📰 내 관심 뉴스</div>
+          </div>
+
+          <!-- detail popup -->
+          <div class="detail">
+            <div class="d-tools">
+              <span>✕</span><span class="sp"></span>
+              <span>⚙</span><span>🗑</span><span>🔔</span><span>🗒</span><span class="heart">♥</span>
+            </div>
+            <div class="d-scroll">
+              <div class="d-jong">증 40</div>
+              <div class="d-price-row">
+                <div>
+                  <div class="d-price" id="dPrice">22,300</div>
+                  <div class="d-delta" id="dDelta">▲ 1,850 &nbsp; 9.05%</div>
+                  <div class="d-vol">621,935 &nbsp; 214.87%</div>
+                </div>
+                <div class="d-now">현재가</div>
+              </div>
+
+              <!-- 아이디어가 들어가는 영역 -->
+              <div id="ideaMount"></div>
+
+              <!-- 공통: 차트 -->
+              <div class="blk-chart">
+                <div class="h"><b>차트</b><span class="btn">차트보기</span></div>
+                <div class="chart-img" id="chartImg"></div>
+                <div class="chart-cap">(일, 40개)</div>
+              </div>
+              <!-- 공통: 뉴스 -->
+              <div class="blk-news">
+                <div class="h"><b>주요뉴스</b><span class="btn">뉴스/공시</span></div>
+                <div class="row"><span>이노테크(469610) 상승폭…</span><span class="t">7시간전</span></div>
+              </div>
+            </div>
+
+            <div class="buybar"><div class="buy">매수</div><div class="sell">매도</div></div>
+          </div>
+        </div>
+
+        <!-- bottom nav -->
+        <div class="navbar">
+          <div class="nv"><span class="i">☰</span>메뉴</div>
+          <div class="nv"><span class="i">🏠</span>홈</div>
+          <div class="nv"><span class="i">🔍</span>주식검색</div>
+          <div class="nv"><span class="i">★</span>관심그룹</div>
+          <div class="nv"><span class="i">📊</span>잔고·손익</div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+    <div class="pill-note">← 좌측에서 아이디어를 전환하세요 · 폰 안의 카드/태그/마커를 눌러보세요</div>
+  </main>
+
+<script>
+/* ============ 데이터 ============ */
+const STOCKS = [
+  {nm:"미래반도체", cd:"KOSDAQ 254490", dir:"up",   pc:"+3.21%", price:"18,400", col:"#e8392b"},
+  {nm:"이노테크",   cd:"KOSDAQ 469610", dir:"up",   pc:"+9.05%", price:"22,300", col:"#e8392b", sel:true},
+  {nm:"케이엔제이", cd:"KOSDAQ 272110", dir:"flat", pc:"+0.42%", price:"14,950", col:"#8a8f97"},
+  {nm:"엘티씨",     cd:"KOSDAQ 170920", dir:"up",   pc:"+2.10%", price:"31,200", col:"#e8392b"},
+  {nm:"#원텍",      cd:"KOSDAQ 336570", dir:"down", pc:"-1.84%", price:"9,870",  col:"#1a6dff"},
+  {nm:"오이솔루션", cd:"KOSDAQ 138080", dir:"up",   pc:"+5.63%", price:"27,450", col:"#e8392b"},
+  {nm:"AP시스템",   cd:"KOSDAQ 265520", dir:"down", pc:"-0.77%", price:"24,100", col:"#1a6dff"},
+];
+
+/* ============ 아이디어 정의 ============ */
+const IDEAS = [
+  { g:"prio", t:"왜 움직였을까?", s:"AI 등락원인 한 줄 + 연관종목", render:ideaWhy },
+  { g:"prio", t:"10초 요약", s:"호재·악재·소식 라벨 불릿, 탭하면 근거", render:idea10sec },
+  { g:"prio", t:"지금 이슈 N개", s:"카카오페이식 실시간 이슈 피드", render:ideaIssues },
+  { g:"value", t:"투자매력 점수", s:"종합 게이지 + 4요소 막대", render:ideaScore },
+  { g:"value", t:"AI 브리핑 스토리", s:"좌우 스와이프 3장 카드", render:ideaStory },
+  { g:"value", t:"목표주가 밴드", s:"애널리스트 컨센서스 vs 현재가", render:ideaBand },
+  { g:"value", t:"재무 한장 요약", s:"PER·PBR·매출·영익 + 업종대비", render:ideaFin },
+  { g:"flow", t:"수급 시그널", s:"외국인·기관 연속매매 스트릭", render:ideaSupply },
+  { g:"flow", t:"관심그룹 히트맵", s:"7종목 한눈에, 탭하면 전환", render:ideaHeat },
+  { g:"flow", t:"연관/함께 움직인 종목", s:"동조 종목 칩 + 상관도", render:ideaRelated },
+  { g:"flow", t:"이벤트 마커 차트", s:"차트 위 실적·공시·수급 마커", render:ideaEvent },
+  { g:"flow", t:"커뮤니티 온도", s:"투자심리 게이지 + 인기 키워드", render:ideaCommu },
+  { g:"flow", t:"스마트 알림 추천", s:"이 조건이면 알려드릴게요", render:ideaAlert },
+];
+
+/* ============ 빌드 네비 ============ */
+const navList = document.getElementById('navList');
+const GROUPS = {prio:"최우선 (등락원인·요약)", value:"가치·재무·밸류", flow:"수급·커뮤니티·탐색"};
+let lastG = null;
+IDEAS.forEach((it, i)=>{
+  if(it.g!==lastG && i!==0){
+    const g=document.createElement('div'); g.className='grp'; g.textContent=GROUPS[it.g]; navList.appendChild(g);
+  }
+  lastG=it.g;
+  const el=document.createElement('div'); el.className='nav-item'; el.dataset.i=i;
+  el.innerHTML=`<span class="no">${i+1}</span><div><div class="t">${it.t}</div><div class="s">${it.s}</div></div>`;
+  el.onclick=()=>select(i);
+  navList.appendChild(el);
+});
+
+/* ============ 워치리스트 ============ */
+const watchList = document.getElementById('watchList');
+STOCKS.forEach((s,i)=>{
+  const el=document.createElement('div');
+  el.className='w-item '+s.dir+(s.sel?' sel':'');
+  el.innerHTML=`<span class="bar"></span><div><div class="nm">${s.nm}</div><div class="cd">${s.cd}</div></div>`;
+  el.onclick=()=>{ document.querySelectorAll('.w-item').forEach(x=>x.classList.remove('sel'));
+    el.classList.add('sel'); switchStock(s); };
+  watchList.appendChild(el);
+});
+
+/* ============ 차트 그리기 (canvas-less svg) ============ */
+function chartSVG(){
+  return `<svg viewBox="0 0 300 96" width="100%" height="100%" preserveAspectRatio="none">
+    ${candles()}</svg>`;
+}
+function candles(){
+  let out=''; let x=4; const base=78;
+  const seq=[20,24,18,26,30,22,28,34,40,52,64,58,70,80,72,60,50,44,38,46,40,34,30,36,42,38,32,28,34,40,48,42,36,44,52,60,54,48,56,64];
+  seq.forEach((h,i)=>{
+    const col = (seq[i]>=(seq[i-1]??h))?'#e8392b':'#1a6dff';
+    const top=base-h*0.9; const bh=Math.max(4,h*0.45);
+    out+=`<line x1="${x+2.5}" y1="${top-4}" x2="${x+2.5}" y2="${top+bh+4}" stroke="${col}" stroke-width="1"/>`;
+    out+=`<rect x="${x}" y="${top}" width="5" height="${bh}" fill="${col}"/>`;
+    x+=7.3;
+  });
+  return out;
+}
+document.getElementById('chartImg').innerHTML = chartSVG();
+
+/* ============ 토스트 ============ */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast'); t.innerHTML=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ============ 종목 전환 ============ */
+function switchStock(s){
+  document.getElementById('dPrice').textContent=s.price;
+  const col = s.dir==='down'?'var(--down)':(s.dir==='flat'?'#8a8f97':'var(--up)');
+  document.getElementById('dPrice').style.color=col;
+  const arrow = s.dir==='down'?'▼':'▲';
+  document.getElementById('dDelta').style.color=col;
+  document.getElementById('dDelta').innerHTML=`${arrow} ${s.pc.replace(/[+-]/,'')} &nbsp; ${s.pc}`;
+  toast(`<b>${s.nm}</b> 종목으로 전환했어요`);
+}
+
+/* ============ 아이디어 선택 ============ */
+let cur=0;
+function select(i){
+  cur=i;
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active', +x.dataset.i===i));
+  const idea=IDEAS[i];
+  document.getElementById('stageTitle').innerHTML=`아이디어 ${i+1}. <b>${idea.t}</b> — ${idea.s}`;
+  document.getElementById('ideaMount').innerHTML='';
+  idea.render(document.getElementById('ideaMount'));
+}
+
+/* =================================================================
+   개별 아이디어 렌더러
+================================================================= */
+
+/* 1. 왜 움직였을까? */
+function ideaWhy(m){
+  m.innerHTML = `
+   <div class="why" id="whyCard">
+     <div class="top">
+       <span class="ai">✦ 왜 올랐을까?</span><span class="tm">48분 전</span>
+     </div>
+     <div class="body">이노테크가 1분기 매출 198억·순이익 47억으로 어닝 서프라이즈를 기록하고, 외국인·기관이 동시 순매수했기 때문이에요.</div>
+     <div class="rel">
+       <span class="dots"><span style="background:#ffb300"></span><span style="background:#26a69a"></span><span style="background:#5c6bc0"></span></span>
+       미래반도체 외 3개 종목과 연관
+     </div>
+     <div class="detailmore">· 1분기 영업이익률 23.7%로 전년 대비 +8.4%p 개선<br>· 5/28 외국인 +12.4만주, 기관 +8.1만주 순매수<br>· 반도체 후공정 소재 신규 공급계약(추정 240억) 기대감<br>· 동종 업종(반도체 소재) 평균 대비 거래량 6.2배</div>
+     <div class="more" onclick="document.getElementById('whyCard').classList.toggle('open'); this.textContent=document.getElementById('whyCard').classList.contains('open')?'접기 ⌃':'자세히 보기  ›'">자세히 보기  ›</div>
+   </div>`;
+}
+
+/* 2. 10초 요약 */
+function idea10sec(m){
+  const items=[
+    {lb:'good', t:'순이익이 4분기 연속 흑자예요.', tm:'48분 전', r:'2025년 2분기부터 흑자 전환 후 4개 분기 연속 흑자. 누적 순이익 162억으로 전년 적자에서 턴어라운드했어요.'},
+    {lb:'good', t:'장 초반에 +9.0% 급등세를 보였어요.', tm:'3시간 전', r:'09:05 기준 +9.05%. 최근 5거래일 중 3일 상승, 거래대금 상위 30위권에 진입했어요.'},
+    {lb:'news', t:'최근 거래량이 6배 이상 증가했어요.', tm:'45분 전', r:'5일 평균 거래량 10.4만주 대비 오늘 62.1만주로 약 6.0배. 단기 수급 쏠림 신호예요.'},
+    {lb:'bad',  t:'PER이 업종 평균보다 높아요.', tm:'1시간 전', r:'현재 PER 38.2배로 반도체 소재 업종 평균(22.5배) 대비 고평가 구간. 단기 변동성에 유의하세요.'},
+  ];
+  m.innerHTML=`<div class="sum10"><div class="sec-h"><b>10초 요약 보기</b><span class="meta">호재·악재 기준 <span class="q">?</span></span></div>${
+    items.map((it,i)=>`
+    <div class="item" data-i="${i}" onclick="this.classList.toggle('open')">
+      <span class="label ${it.lb}">${it.lb==='good'?'호재':it.lb==='bad'?'악재':'소식'}</span>
+      <div class="txt">${it.t}<div class="tm">${it.tm}</div><div class="reason">${it.r}</div></div>
+      <span class="arr">›</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* 3. 지금 이슈 N개 (카카오) */
+function ideaIssues(m){
+  const its=[
+    {ic:'u', e:'📈', t:'22,300원으로 1년 최고가를 기록했어요.'},
+    {ic:'k', e:'🏛', t:'외국인이 2일 연속 사고 있어요.'},
+    {ic:'n', e:'📢', t:'이노테크, 240억 규모 반도체 소재 공급계약 추진.'},
+    {ic:'u', e:'👑', t:'코스닥 인기 랭킹 7위예요.'},
+    {ic:'d', e:'🌐', t:'코스닥 지수 1,104.36 (▼2.54%)'},
+  ];
+  m.innerHTML=`<div class="issues"><div class="sec-h"><b>지금 이슈 <span style="color:#3b5bff">${its.length}</span></b><span class="meta">5:52 기준</span></div>${
+    its.map(it=>`<div class="it" onclick="toast('해당 이슈 상세로 이동합니다')"><span class="ic ${it.ic}">${it.e}</span><span class="tx">${it.t}</span><span class="arr">›</span></div>`).join('')
+  }<div class="more" onclick="toast('이슈 8건 모두 펼칩니다')">더보기 ⌄</div></div>`;
+}
+
+/* 4. 투자매력 점수 */
+function ideaScore(m){
+  const score=72;
+  const bars=[
+    {k:'모멘텀', v:88, d:'5일 중 3일 상승, 거래량 6배 급증으로 단기 추세가 강해요.'},
+    {k:'수급',   v:81, d:'외국인·기관 동시 순매수, 개인 매도 우위.'},
+    {k:'밸류',   v:46, d:'PER 38배로 업종 평균 대비 다소 비싼 편이에요.'},
+    {k:'심리',   v:74, d:'커뮤니티 언급량 급증, 긍정 비중 68%.'},
+  ];
+  const circ=2*Math.PI*42; const off=circ*(1-score/100);
+  m.innerHTML=`<div class="score">
+    <div class="sec-h"><b>투자매력 점수</b><span class="meta">AI 종합 · 5:52</span></div>
+    <div class="top">
+      <div class="gauge">
+        <svg width="96" height="96"><circle cx="48" cy="48" r="42" stroke="#eef0f3" stroke-width="9" fill="none"/>
+        <circle cx="48" cy="48" r="42" stroke="#ff2e3f" stroke-width="9" fill="none" stroke-linecap="round"
+          stroke-dasharray="${circ}" stroke-dashoffset="${off}" transform="rotate(-90 48 48)"/></svg>
+        <div class="v"><b>${score}</b><small>/100</small></div>
+      </div>
+      <div class="desc"><b>단기 모멘텀 강세</b> 구간이에요. 수급은 우호적이나 <b>밸류 부담</b>은 체크하세요. (요소를 눌러 근거 확인)</div>
+    </div>
+    <div class="bars">${bars.map((b,i)=>`
+      <div class="bar-row" onclick="toast('<b>${b.k} ${b.v}점</b><br>${b.d}')">
+        <div class="lab"><span>${b.k}</span><span class="vv">${b.v}</span></div>
+        <div class="track"><i style="width:${b.v}%"></i></div>
+      </div>`).join('')}</div>
+  </div>`;
+}
+
+/* 5. AI 브리핑 스토리 */
+function ideaStory(m){
+  m.innerHTML=`<div class="story" id="story">
+    <div class="prog">${[0,1,2].map(i=>`<i><b id="pb${i}"></b></i>`).join('')}</div>
+    <div class="slide on">
+      <div class="kicker">✦ 오늘의 한 줄</div>
+      <h3>이노테크,<br>오늘 +9.05% 급등 🔥</h3>
+      <p>어닝 서프라이즈 + 수급 쌍끌이가 동시에 터졌어요. 핵심만 3장으로 정리했어요.</p>
+      <div class="big" style="color:#ff6b6b">+9.05%</div>
+    </div>
+    <div class="slide">
+      <div class="kicker">① 실적</div>
+      <h3>1분기 매출 198억<br>순이익 47억</h3>
+      <p>영업이익률 23.7%로 전년 대비 +8.4%p 개선. 4분기 연속 흑자를 이어갔어요.</p>
+      <div class="big">+8.4%p</div>
+    </div>
+    <div class="slide">
+      <div class="kicker">② 수급 · 체크포인트</div>
+      <h3>외국인·기관<br>2일 연속 순매수</h3>
+      <p>다만 PER 38배로 업종 평균(22배)보다 높아 단기 변동성은 유의가 필요해요.</p>
+      <div class="big" style="font-size:30px">⚠ 밸류 부담</div>
+    </div>
+    <div class="tapL" onclick="storyGo(-1)"></div>
+    <div class="tapR" onclick="storyGo(1)"></div>
+    <div class="hint">좌·우를 탭해서 넘겨보세요</div>
+  </div>`;
+  storyIdx=0; storyShow();
+}
+let storyIdx=0;
+function storyGo(d){ const n=document.querySelectorAll('#story .slide').length;
+  storyIdx=Math.max(0,Math.min(n-1,storyIdx+d)); storyShow(); }
+function storyShow(){
+  const slides=document.querySelectorAll('#story .slide');
+  slides.forEach((s,i)=>s.classList.toggle('on',i===storyIdx));
+  [0,1,2].forEach(i=>{const b=document.getElementById('pb'+i); if(b)b.style.width=i<storyIdx?'100%':i===storyIdx?'100%':'0';});
+}
+
+/* 6. 목표주가 밴드 */
+function ideaBand(m){
+  const low=18000, high=34000, now=22300, tgt=29500;
+  const p=v=>((v-low)/(high-low))*100;
+  m.innerHTML=`<div class="band">
+    <div class="sec-h"><b>애널리스트 목표주가</b><span class="meta">증권사 7곳 컨센서스</span></div>
+    <div class="nums"><span>최저 18,000</span><span>평균 ▶</span><span>최고 34,000</span></div>
+    <div class="track">
+      <div class="now" style="left:${p(now)}%"></div>
+      <div class="tgt" style="left:${p(tgt)}%" onclick="toast('<b>목표주가 29,500원</b><br>현재가 대비 +32.3% 상승여력')"></div>
+    </div>
+    <div class="cap"><span>현재가 <b>22,300</b></span><span>목표가 <b>29,500</b> · <span class="up">+32.3%</span></span></div>
+    <div class="more" onclick="toast('리포트 7건 목록을 표시합니다')">리포트 7건 보기  ›</div>
+  </div>`;
+}
+
+/* 7. 재무 한장 */
+function ideaFin(m){
+  const cells=[
+    {k:'PER', v:'38.2배', c:'업종 22.5배 ▲', cls:'bad'},
+    {k:'PBR', v:'4.1배',  c:'업종 2.8배 ▲',  cls:'bad'},
+    {k:'1Q 매출', v:'198억', c:'YoY +41%', cls:'good'},
+    {k:'영업이익', v:'47억', c:'YoY +132%', cls:'good'},
+    {k:'영업이익률', v:'23.7%', c:'+8.4%p', cls:'good'},
+    {k:'부채비율', v:'42%', c:'업종 평균 이하', cls:'good'},
+  ];
+  m.innerHTML=`<div><div class="sec-h"><b>재무 한장 요약</b><span class="meta">2026 1Q · 업종대비</span></div>
+   <div class="fin">${cells.map(c=>`
+     <div class="cell" onclick="toast('<b>${c.k} ${c.v}</b><br>${c.c.replace(/[▲▼]/g,'')}')">
+       <div class="k">${c.k}</div><div class="v">${c.v}</div>
+       <div class="cmp ${c.cls}">${c.c}</div>
+     </div>`).join('')}</div></div>`;
+}
+
+/* 8. 수급 시그널 */
+function ideaSupply(m){
+  const f="buy,buy,sell,buy,buy,buy,sell,buy,buy,buy".split(',');
+  const g="buy,buy,buy,buy,sell,buy,buy,buy,buy,buy".split(',');
+  const seg=arr=>arr.map(x=>`<i class="${x}"></i>`).join('');
+  m.innerHTML=`<div class="supply"><div class="sec-h"><b>수급 시그널</b><span class="meta">최근 10거래일</span></div>
+    <div class="card" onclick="toast('<b>외국인</b> 최근 10일 중 8일 순매수<br>누적 +52.4만주')">
+      <div class="ic f">🌐</div><div style="flex:1"><div class="t">외국인 2일 연속 순매수</div><div class="s">10일 중 8일 매수 · 누적 +52.4만주</div><div class="streak">${seg(f)}</div></div></div>
+    <div class="card" onclick="toast('<b>기관</b> 최근 10일 중 9일 순매수<br>누적 +38.1만주')">
+      <div class="ic g">🏛</div><div style="flex:1"><div class="t">기관 3일 연속 순매수</div><div class="s">10일 중 9일 매수 · 누적 +38.1만주</div><div class="streak">${seg(g)}</div></div></div>
+    <div class="card" onclick="toast('<b>개인</b> 차익실현 매도 우위<br>오늘 -41.2만주')">
+      <div class="ic p">👤</div><div style="flex:1"><div class="t">개인은 매도 우위</div><div class="s">외국인·기관이 받아내는 중</div></div></div>
+  </div>`;
+}
+
+/* 9. 관심그룹 히트맵 */
+function ideaHeat(m){
+  const tiles=STOCKS.map(s=>{
+    const bg = s.dir==='down' ? '#2f6bff' : s.dir==='flat' ? '#9aa0a8' : (parseFloat(s.pc)>5?'#d62718':'#e8553f');
+    return `<div class="tile" style="background:${bg}" onclick="toast('<b>${s.nm}</b> ${s.pc}<br>탭하면 해당 종목 팝업으로 전환돼요')">
+      <div class="nm">${s.nm}</div><div class="pc">${s.pc}</div><div class="dl">${s.price}원</div>
+      ${parseFloat(s.pc)>5?'<span class="tag">급등</span>':''}</div>`;
+  }).join('');
+  m.innerHTML=`<div><div class="sec-h"><b>관심그룹 한눈에</b><span class="meta">등락률 히트맵</span></div>
+    <div class="heat">${tiles}</div></div>`;
+}
+
+/* 10. 연관 종목 */
+function ideaRelated(m){
+  const r=[
+    {n:'미래반도체', d:'+3.2%', up:1, c:'상관 0.82'},
+    {n:'AP시스템', d:'-0.8%', up:0, c:'상관 0.71'},
+    {n:'오이솔루션', d:'+5.6%', up:1, c:'상관 0.68'},
+    {n:'케이엔제이', d:'+0.4%', up:1, c:'상관 0.55'},
+    {n:'엘티씨', d:'+2.1%', up:1, c:'상관 0.49'},
+  ];
+  m.innerHTML=`<div><div class="sec-h"><b>함께 움직인 종목</b><span class="meta">반도체 소재 테마</span></div>
+   <div class="related">${r.map(x=>`<div class="rchip" onclick="toast('<b>${x.n}</b> 오늘 ${x.d}<br>${x.c} · 이노테크와 동반 등락')">
+     ${x.n} <span class="d ${x.up?'up':'down'}">${x.d}</span></div>`).join('')}</div>
+   <div class="pill-note" style="text-align:left;margin-top:12px">테마·수급·뉴스 동조성을 기준으로 묶었어요. 칩을 누르면 상관도를 확인할 수 있어요.</div></div>`;
+}
+
+/* 11. 이벤트 마커 차트 */
+function ideaEvent(m){
+  const ev=[
+    {x:24, y:62, c:'#e8392b', e:'실', t:'<b>5/12 1Q 실적발표</b> 매출 198억·순이익 47억, 컨센서스 +18% 상회'},
+    {x:55, y:40, c:'#1aaf5d', e:'공', t:'<b>5/20 공시</b> 240억 규모 반도체 소재 공급계약(추정) 단일판매 공시'},
+    {x:78, y:24, c:'#3b5bff', e:'수', t:'<b>5/28 수급</b> 외국인 +12.4만주, 기관 +8.1만주 동시 순매수'},
+    {x:90, y:32, c:'#ff8f00', e:'뉴', t:'<b>오늘 뉴스</b> 이노테크 상승폭 확대… 목표가 상향 리포트 3건'},
+  ];
+  m.innerHTML=`<div class="evchart"><div class="sec-h"><b>이벤트 차트</b><span class="meta">마커를 눌러보세요</span></div>
+    <div class="evwrap"><svg viewBox="0 0 300 120" width="100%" height="100%" preserveAspectRatio="none">
+      <polyline fill="none" stroke="#e8392b" stroke-width="2"
+        points="0,95 30,82 60,70 90,74 120,60 150,40 180,30 210,44 240,28 270,20 300,30"/>
+      <polyline fill="url(#g)" stroke="none" points="0,95 30,82 60,70 90,74 120,60 150,40 180,30 210,44 240,28 270,20 300,30 300,120 0,120"/>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8392b" stop-opacity=".18"/><stop offset="1" stop-color="#e8392b" stop-opacity="0"/></linearGradient></defs>
+      </svg>
+      ${ev.map((e,i)=>`<div class="evmark" style="left:${e.x}%; top:${e.y}%; background:${e.c}" onclick="document.getElementById('evtip').innerHTML='${e.t.replace(/'/g,"\\'")}'">${e.e}</div>`).join('')}
+    </div>
+    <div class="evtip" id="evtip"><b>마커를 누르면</b> 해당 시점의 실적·공시·수급 이벤트가 표시돼요.</div>
+  </div>`;
+}
+
+/* 12. 커뮤니티 온도 */
+function ideaCommu(m){
+  const pos=68;
+  const kws=[['목표가 상향',1],['실적 서프라이즈',1],['공급계약',0],['외국인 매수',1],['단타 주의',0],['R&D 투자',1]];
+  m.innerHTML=`<div class="commu"><div class="sec-h"><b>커뮤니티 온도</b><span class="meta">언급 1,240건 · 24h</span></div>
+    <div class="meter"><div class="pin" style="left:${pos}%"></div></div>
+    <div class="scale"><span>부정</span><span>긍정 ${pos}%</span></div>
+    <div class="kw">${kws.map(([k,hot])=>`<span onclick="toast('키워드 <b>${k}</b> 관련 글 보기')">${hot?'<b>#</b>':'#'}${k}</span>`).join('')}</div>
+    <div class="pill-note" style="text-align:left;margin-top:12px">최근 24시간 언급량이 평소의 5.8배. 긍정 비중 ${pos}%로 분위기가 달아오르고 있어요.</div>
+  </div>`;
+}
+
+/* 13. 스마트 알림 */
+function ideaAlert(m){
+  const rows=[
+    {ic:'🎯', t:'목표가 29,500원 도달하면 알림', },
+    {ic:'⚡', t:'장중 ±5% 이상 급변동 시 알림'},
+    {ic:'🌐', t:'외국인 순매도 전환되면 알림'},
+    {ic:'📢', t:'신규 공시·리포트 나오면 알림'},
+  ];
+  m.innerHTML=`<div class="alert"><div class="sec-h"><b>스마트 알림 추천</b><span class="meta">이 종목 맞춤</span></div>
+    ${rows.map((r,i)=>`<div class="row" data-i="${i}" onclick="
+        this.classList.toggle('done');
+        const on=this.classList.contains('done');
+        this.querySelector('.add').textContent=on?'설정됨 ✓':'+ 추가';
+        toast(on?'<b>알림이 설정됐어요</b><br>${r.t.replace(/'/g,'')}':'알림을 해제했어요');">
+      <span class="ic">${r.ic}</span><span class="t">${r.t}</span><span class="add">+ 추가</span></div>`).join('')}
+  </div>`;
+}
+
+/* ============ 시작 ============ */
+select(0);
+</script>
+</body>
+</html>

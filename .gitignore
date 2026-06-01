@@ -1,0 +1,8 @@
+# 배포 제외: 원본 캡처/중복본/로그
+/references/
+/versions/
+/assets/
+*.log
+.DS_Store
+node_modules/
+.vscode/
