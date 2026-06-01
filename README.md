@@ -5,7 +5,8 @@
 ## 🔗 데모 (GitHub Pages)
 
 - 허브: https://w-x-z.github.io/Interesting-Popup/
-- v3 · 최근 소식 카드(최신): https://w-x-z.github.io/Interesting-Popup/v3/
+- v4 · 커뮤니티 시그널(최신): https://w-x-z.github.io/Interesting-Popup/v4/
+- v3 · 최근 소식 카드: https://w-x-z.github.io/Interesting-Popup/v3/
 - v2 · ①왜 움직였을까 / ②10초 요약: https://w-x-z.github.io/Interesting-Popup/v2/
 - v1 · 아이디어 13종 탐색: https://w-x-z.github.io/Interesting-Popup/v1/
 
@@ -13,6 +14,7 @@
 
 | 버전 | 설명 |
 |------|------|
+| **v4** | `커뮤니티 시그널`. 관심그룹 팝업 안 **하나의 소재 카드**로 추가(v3 룩앤필 유지). 투자자들이 커뮤니티에 올린 **게시글**을 집계해 호재·악재 판단 재료로 변환. 시그널 행을 펼치면 긍·부정 감성 비중과 함께 **실제 게시글이 근거**로 노출. |
 | **v3** | 기존 앱 룩앤필 그대로 + 팝업 내 `최근 소식` 카드만 자연스러운 접힘/펼침으로 개발. 펼치면 차트가 실제로 아래로 밀리고, 항목별 근거가 2단 아코디언으로 열림. |
 | **v2** | `①왜 움직였을까` `②10초 요약` 두 아이디어 완성본. 카드/행 탭 인터랙션 + 실제 캡처 겹쳐보기(키보드 `C`)로 영역 정합 확인. |
 | **v1** | 아이디어 13종을 한 화면에서 비교하는 탐색용 프로토타입. |
@@ -23,7 +25,8 @@
 index.html      # 버전 탐색 허브
 v1/index.html   # 13 아이디어
 v2/index.html   # 1·2번 인터랙션 (+ v2/assets/screen.png)
-v3/index.html   # 최근 소식 카드 (최신)
+v3/index.html   # 최근 소식 카드
+v4/index.html   # 커뮤니티 시그널 (최신)
 ```
 
-레퍼런스(이노테크 469610) 기반 더미 데이터입니다. 모든 페이지는 빌드 과정 없이 정적 HTML/CSS/JS로 동작합니다.
+모든 버전은 이노테크(469610) 기반 더미 데이터입니다. 모든 페이지는 빌드 과정 없이 정적 HTML/CSS/JS로 동작합니다.

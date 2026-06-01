@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관심그룹 팝업 · 커뮤니티 시그널 (매매·게시글에서 호재·악재) 프로토타입</title>
+<style>
+  :root{
+    --up:#ee342c; --down:#3583f8; --ink:#1c1c1e; --sub:#9a9ea5;
+    --line:#eef0f2; --buy:#ee342c; --sell:#3583f8; --heart:#ff4b4b;
+    --good:#e8392b; --good-bd:#f1bcb7; --good-bg:#fdecec;
+    --bad:#2f6bf6;  --bad-bd:#bcd0fb;  --bad-bg:#ebf1ff;
+    --warn:#e8870b; --warn-bd:#f5d9a8; --warn-bg:#fdf2e3;
+    --news:#18a558; --news-bd:#b7e0c6; --news-bg:#e9f7ef;
+    --ai:#4b6bff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Pretendard","Segoe UI",sans-serif;background:#eceef1;color:var(--ink);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:34px 16px 56px;}
+  .title{font-size:14px;color:#5b626e;text-align:center;margin-bottom:4px;letter-spacing:-.2px;}
+  .title b{color:#11151c;}
+  .sub{font-size:12px;color:#8b9098;text-align:center;margin-bottom:20px;}
+
+  /* ===== 폰 ===== */
+  .phone{width:386px;flex:0 0 auto;border-radius:44px;padding:11px;background:#0c0e12;box-shadow:0 28px 70px rgba(20,28,46,.30);}
+  .screen{position:relative;width:364px;height:789px;border-radius:34px;overflow:hidden;background:#fff;display:flex;flex-direction:column;}
+
+  .statusbar{height:30px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 18px 0 20px;font-size:13px;font-weight:700;color:#111;}
+  .statusbar .l{display:flex;align-items:center;gap:5px;}
+  .statusbar .l .ico{font-size:11px;opacity:.85;}
+  .statusbar .r{display:flex;gap:4px;align-items:center;font-size:10.5px;color:#222;}
+  .statusbar .batt{border:1.3px solid #2a2a2a;border-radius:4px;padding:0 3px 0 2px;font-size:9px;font-weight:800;position:relative;margin-left:1px;}
+  .statusbar .batt:after{content:"";position:absolute;right:-2.5px;top:3px;bottom:3px;width:1.6px;background:#2a2a2a;border-radius:1px;}
+
+  .appbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:8px 15px 6px;}
+  .appbar .ic{font-size:19px;color:#222;width:22px;text-align:center;}
+  .appbar .ttl{font-size:17px;font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:5px;}
+  .appbar .ttl .car{font-size:12px;color:#8a8e95;}
+  .tabs{flex:0 0 auto;display:flex;gap:16px;padding:7px 16px 0;font-size:13.5px;color:#a6abb3;border-bottom:1px solid var(--line);overflow-x:auto;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tabs .tab{padding:6px 1px 10px;white-space:nowrap;position:relative;font-weight:600;}
+  .tabs .tab.on{color:#111;font-weight:800;}
+  .tabs .tab.on:after{content:"";position:absolute;left:-2px;right:-2px;bottom:-1px;height:2.5px;background:#111;border-radius:3px;}
+  .tabs .swap{margin-left:auto;color:#9aa0a8;font-size:15px;border:1px solid #e6e8eb;border-radius:7px;padding:1px 6px;align-self:center;margin-bottom:6px;}
+
+  .split{flex:1;display:flex;min-height:0;}
+  .watch{width:132px;flex:0 0 132px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;}
+  .watch-top{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;font-size:11px;color:#6f757d;}
+  .watch-top .pill{border:1px solid #e6e8eb;border-radius:7px;padding:2px 7px;font-size:10.5px;display:flex;gap:4px;align-items:center;color:#5b626e;}
+  .watch-head{font-size:11px;color:#a6abb3;text-align:center;padding:4px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .watch-list{flex:1;overflow-y:auto;}
+  .watch-list::-webkit-scrollbar{display:none;}
+  .w-item{position:relative;padding:9px 9px;border-bottom:1px solid #f5f6f7;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .12s;}
+  .w-item:active{background:#f6f7f9;}
+  .w-ic{width:13px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+  .w-item .nm{font-size:13px;font-weight:800;letter-spacing:-.3px;line-height:1.2;}
+  .w-item .cd{font-size:9.5px;color:#aeb2b8;margin-top:3px;letter-spacing:-.2px;}
+  .w-item .tri{position:absolute;right:0;bottom:0;width:0;height:0;border-left:7px solid transparent;border-bottom:7px solid #2bb060;}
+  .w-item.sel{background:#fff6f5;box-shadow:inset 2.5px 0 0 var(--up);}
+  .w-item.sel .nm{color:var(--up);}
+  .watch-foot{font-size:10.5px;color:#8b9098;padding:8px 9px;border-top:1px solid var(--line);display:flex;gap:5px;align-items:center;justify-content:space-between;}
+
+  /* ===== detail popup ===== */
+  .detail{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .d-tools{flex:0 0 auto;display:flex;align-items:center;padding:9px 13px 5px;color:#3c3c3e;}
+  .d-tools .x{font-size:17px;font-weight:500;}
+  .d-tools .sp{flex:1;}
+  .d-tools .t{font-size:16px;margin-left:14px;opacity:.8;}
+  .d-tools .heart{color:var(--heart);opacity:1;}
+  .d-scroll{flex:1;overflow-y:auto;padding:0 13px 10px;scroll-behavior:smooth;}
+  .d-scroll::-webkit-scrollbar{width:0;}
+  .d-jong{font-size:11.5px;color:#9a9ea5;margin:4px 0 2px;}
+  .d-top{display:flex;align-items:flex-start;justify-content:space-between;}
+  .d-price{font-size:30px;font-weight:800;color:var(--up);letter-spacing:-.8px;line-height:1.04;}
+  .d-now{border:1px solid #dde0e4;border-radius:16px;font-size:11px;padding:4px 11px;color:#4a4a4c;margin-top:6px;font-weight:600;}
+  .d-delta{font-size:14px;color:var(--up);font-weight:800;margin-top:7px;letter-spacing:-.2px;display:flex;align-items:center;gap:13px;}
+  .d-delta .arr{font-size:11px;margin-right:-9px;}
+  .d-vol{font-size:12px;color:#aeb2b8;margin-top:4px;letter-spacing:-.2px;display:flex;gap:13px;}
+
+  /* ===== 커뮤니티 시그널 카드 (소재) ===== */
+  .sig-card{margin-top:13px;border:1px solid #e9ebee;border-radius:14px;background:#fff;overflow:hidden;}
+  .sc-head{display:flex;align-items:center;padding:12px 13px;cursor:pointer;user-select:none;transition:background .12s;}
+  .sc-head:active{background:#fafafa;}
+  .sc-head .spark{color:var(--ai);font-size:12px;font-weight:800;margin-right:5px;}
+  .sc-head .ttl{font-size:14px;font-weight:800;letter-spacing:-.3px;}
+  .sc-head .chev{margin-left:auto;color:#bcc1c8;font-size:14px;transition:transform .3s cubic-bezier(.4,0,.2,1);}
+  .sig-card.open .sc-head .chev{transform:rotate(180deg);}
+
+  /* 접힘: 요약 */
+  .sc-fold{padding:0 13px 13px;}
+  .sig-card.open .sc-fold{display:none;}
+  .sc-chips{display:flex;gap:7px;}
+  .chip{display:inline-flex;align-items:center;gap:4px;border-radius:8px;font-size:11.5px;font-weight:800;padding:3px 9px;border:1px solid;letter-spacing:-.2px;background:#fff;}
+  .chip .n{font-weight:800;}
+  .chip.good{color:var(--good);border-color:var(--good-bd);}
+  .chip.warn{color:var(--warn);border-color:var(--warn-bd);}
+  .chip.bad{color:var(--bad);border-color:var(--bad-bd);}
+  .chip.news{color:var(--news);border-color:var(--news-bd);}
+  .sc-foldnote{font-size:11px;color:#9a9ea5;margin-top:9px;line-height:1.45;letter-spacing:-.2px;}
+  .sc-foldnote b{color:#5b626e;font-weight:700;}
+
+  /* 펼침 */
+  .sc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.4,0,.2,1);}
+  .sig-card.open .sc-body{grid-template-rows:1fr;}
+  .sc-body > .wrap{overflow:hidden;}
+  .sc-inner{padding:0 13px 4px;}
+  .sig-card.open .sc-inner{animation:fade .34s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:none;}}
+
+  /* 소스 토글 */
+  .seg{display:flex;background:#f1f2f4;border-radius:9px;padding:3px;gap:3px;margin-bottom:4px;}
+  .seg button{flex:1;border:0;background:transparent;color:#7e848d;font-size:11px;font-weight:700;padding:7px 2px;border-radius:7px;cursor:pointer;transition:.15s;letter-spacing:-.3px;white-space:nowrap;}
+  .seg button.on{background:#fff;color:#1c1c1e;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .seg button .c{color:#aeb2b8;margin-left:2px;}
+  .seg button.on .c{color:#8b9098;}
+  .sc-sample{font-size:10.5px;color:#9a9ea5;padding:8px 1px 2px;line-height:1.45;letter-spacing:-.2px;}
+  .sc-sample b{color:#5b626e;font-weight:700;}
+
+  /* 시그널 행 */
+  .srow{padding:11px 0;border-top:1px solid #f3f4f6;cursor:pointer;}
+  .srow .r1{display:flex;align-items:center;gap:7px;}
+  .label{display:inline-flex;align-items:center;border-radius:7px;font-size:11px;font-weight:800;padding:2px 8px;border:1px solid;letter-spacing:-.2px;line-height:1.4;flex:0 0 auto;}
+  .label.good{color:var(--good);border-color:var(--good-bd);}
+  .label.warn{color:var(--warn);border-color:var(--warn-bd);}
+  .label.bad{color:var(--bad);border-color:var(--bad-bd);}
+  .label.news{color:var(--news);border-color:var(--news-bd);}
+  .srow .conf{margin-left:auto;font-size:10px;color:#b3b7bd;letter-spacing:-.2px;display:flex;align-items:center;gap:4px;}
+  .srow .arr{color:#cdd1d7;font-size:13px;transition:transform .25s;}
+  .srow.o .arr{transform:rotate(90deg);}
+  .srow .stt{font-size:12.5px;color:#2b2b2d;line-height:1.45;margin-top:7px;letter-spacing:-.3px;font-weight:600;}
+
+  /* 근거 펼침 */
+  .why{display:grid;grid-template-rows:0fr;transition:grid-template-rows .26s ease;}
+  .srow.o .why{grid-template-rows:1fr;margin-top:8px;}
+  .why > .in{overflow:hidden;}
+  .ev{background:#f7f8fa;border-radius:9px;padding:9px 10px;}
+  .ev .lead{font-size:11px;color:#74787f;line-height:1.55;letter-spacing:-.2px;}
+  .ev .lead b{color:#2b2b2d;}
+  .ev .src-h{font-size:9px;color:#b3b7bd;font-weight:800;letter-spacing:.3px;margin:9px 0 6px;text-transform:uppercase;}
+
+  /* 감성 바 */
+  .bar{height:7px;border-radius:5px;overflow:hidden;display:flex;margin:8px 0 4px;}
+  .bar i{display:block;height:100%;}
+  .bar .b-pos{background:var(--up);} .bar .b-neu{background:#d6dae0;} .bar .b-neg{background:var(--bad);}
+  .barlg{display:flex;justify-content:space-between;font-size:9.5px;color:#9a9ea5;}
+  .barlg b{font-weight:700;}
+
+  /* 근거 매매내역 */
+  .trade{display:flex;align-items:center;gap:7px;padding:6px 0;border-top:1px dashed #e7e9ec;}
+  .trade:first-of-type{border-top:none;}
+  .trade .ava{width:21px;height:21px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:800;}
+  .trade .ti{min-width:0;flex:1;}
+  .trade .tn{font-size:10.5px;font-weight:700;color:#2b2b2d;display:flex;align-items:center;gap:4px;line-height:1.2;}
+  .trade .tn .bdg{font-size:8px;color:#a86a12;background:#fbe8cf;border-radius:4px;padding:1px 4px;font-weight:800;white-space:nowrap;}
+  .trade .ts{font-size:9.5px;color:#9a9ea5;margin-top:2px;letter-spacing:-.2px;}
+  .trade .ta{font-size:9px;font-weight:800;border-radius:5px;padding:3px 6px;flex:0 0 auto;white-space:nowrap;}
+  .trade .ta.buy{color:var(--up);background:#fdecec;}
+  .trade .ta.sell{color:var(--bad);background:#ebf1ff;}
+
+  /* 근거 게시글 */
+  .post{padding:6px 0;border-top:1px dashed #e7e9ec;}
+  .post:first-of-type{border-top:none;}
+  .post .ph{display:flex;align-items:center;gap:5px;}
+  .post .pa{width:15px;height:15px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;}
+  .post .pn{font-size:9.5px;color:#8b9098;font-weight:600;}
+  .post .pt{font-size:8.5px;font-weight:800;border-radius:4px;padding:1px 5px;margin-left:auto;}
+  .post .pt.pos{color:var(--up);background:#fdecec;}
+  .post .pt.neg{color:var(--bad);background:#ebf1ff;}
+  .post .pt.cau{color:var(--warn);background:#fdf2e3;}
+  .post .px{font-size:10.5px;color:#2b2b2d;line-height:1.45;margin-top:4px;letter-spacing:-.2px;}
+
+  .disc{margin-top:11px;background:#f4f6fa;border-radius:9px;padding:8px 10px;font-size:9.5px;color:#7c8694;line-height:1.5;display:flex;gap:6px;align-items:flex-start;}
+  .disc .i{flex:0 0 auto;color:#9aa3b2;}
+  .disc b{color:#5b626e;}
+
+  /* ===== chart ===== */
+  .blk{margin-top:15px;}
+  .blk .bh{display:flex;align-items:center;justify-content:space-between;}
+  .blk .bh b{font-size:14.5px;letter-spacing:-.3px;}
+  .blk .bh .btn{border:1px solid #e2e4e8;border-radius:9px;font-size:11.5px;padding:4px 11px;color:#5b5f66;font-weight:600;}
+  .chart{margin-top:10px;height:106px;position:relative;}
+  .chart-cap{font-size:10.5px;color:#bcc0c6;text-align:right;margin-top:3px;}
+  .commu{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#56595f;margin-top:12px;}
+  .commu .ava{width:18px;height:18px;border-radius:50%;background:#9b6cff;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;}
+  .commu .more{margin-left:auto;color:#cfd2d8;}
+
+  .buybar{flex:0 0 auto;display:flex;}
+  .buybar div{flex:1;text-align:center;padding:14px 0;font-size:16px;font-weight:800;color:#fff;letter-spacing:2px;}
+  .buybar .buy{background:var(--buy);} .buybar .sell{background:var(--sell);}
+
+  .navbar{flex:0 0 auto;height:54px;background:#fff;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 12px 4px;}
+  .navbar .nv{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:#5f636b;line-height:1.2;}
+  .navbar .nv .i{font-size:17px;color:#2c2c2e;}
+  .navbar .layers{color:#2bb060;font-size:21px;}
+
+  .toast{position:absolute;left:50%;bottom:88px;transform:translateX(-50%) translateY(14px);background:rgba(22,24,30,.95);color:#fff;font-size:12px;padding:10px 15px;border-radius:12px;max-width:80%;text-align:center;opacity:0;pointer-events:none;transition:.24s;z-index:40;line-height:1.45;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .hint{font-size:12px;color:#7b8189;text-align:center;margin-top:18px;max-width:400px;line-height:1.55;}
+  .hint b{color:#11151c;}
+</style>
+</head>
+<body>
+  <div class="title">관심그룹 팝업 · <b>커뮤니티 시그널</b> 소재 프로토타입</div>
+  <div class="sub">팝업 안 한 개의 소재로 추가 · 커뮤니티 게시글을 호재·악재로 요약</div>
+
+  <div class="phone">
+    <div class="screen" id="screen">
+      <div class="statusbar">
+        <div class="l">5:52 <span class="ico">▣</span><span class="ico">⚠</span><span class="ico">◆</span></div>
+        <div class="r"><span>🔇</span><span>LTE</span><span>📶</span><span class="batt">49</span></div>
+      </div>
+      <div class="appbar">
+        <span class="ic">‹</span>
+        <span class="ttl">관심그룹 <span class="car">⌄</span></span>
+        <span class="ic">⋮</span>
+      </div>
+      <div class="tabs">
+        <span class="tab">보유종목</span><span class="tab">최근조회</span><span class="tab">관심그룹1</span>
+        <span class="tab on">스윙스</span><span class="tab">AI</span><span class="swap">⇄</span>
+      </div>
+
+      <div class="split">
+        <div class="watch">
+          <div class="watch-top"><span>총7개</span><span class="pill">통합 ⋮</span></div>
+          <div class="watch-head">종목명</div>
+          <div class="watch-list" id="watchList"></div>
+          <div class="watch-foot"><span>📰 내 관심 뉴스</span><span style="color:#c4c8ce">⋮≡</span></div>
+        </div>
+
+        <div class="detail">
+          <div class="d-tools">
+            <span class="x">✕</span><span class="sp"></span>
+            <span class="t">⚙</span><span class="t">🗑</span><span class="t">🔔</span><span class="t">🗒</span><span class="t heart">♥</span>
+          </div>
+          <div class="d-scroll" id="dScroll">
+            <div class="d-jong">증 40</div>
+            <div class="d-top">
+              <div>
+                <div class="d-price">22,300</div>
+                <div class="d-delta"><span class="arr">▲</span> 1,850 <span>9.05%</span></div>
+                <div class="d-vol"><span>621,935</span><span>214.87%</span></div>
+              </div>
+              <div class="d-now">현재가</div>
+            </div>
+
+            <!-- ===== 커뮤니티 시그널 카드 ===== -->
+            <div class="sig-card" id="sigCard">
+              <div class="sc-head" id="scHead">
+                <span class="spark">✦</span><span class="ttl">커뮤니티 시그널</span>
+                <span class="chev">⌄</span>
+              </div>
+
+              <!-- 접힘 -->
+              <div class="sc-fold">
+                <div class="sc-chips" id="scChips"></div>
+                <div class="sc-foldnote">투자자들이 <b>커뮤니티에 올린 게시글</b>에서 뽑은 판단 재료예요. 탭하면 근거가 열려요.</div>
+              </div>
+
+              <!-- 펼침 -->
+              <div class="sc-body"><div class="wrap"><div class="sc-inner">
+                <div class="sc-sample" id="scSample"></div>
+                <div id="list"></div>
+                <div class="disc"><span class="i">ⓘ</span><span>다른 투자자의 공유 게시글을 집계한 참고 정보예요. <b>투자 판단은 직접</b> 해주세요.</span></div>
+              </div></div></div>
+            </div>
+
+            <div class="blk">
+              <div class="bh"><b>차트</b><span class="btn">차트보기</span></div>
+              <div class="chart" id="chart"></div>
+              <div class="chart-cap">(일, 40개)</div>
+            </div>
+            <div class="blk">
+              <div class="bh"><b>주요뉴스</b><span class="btn">뉴스/공시</span></div>
+              <div class="commu"><span class="ava">💬</span><span>이byoong 주식은 매일 나락을 가…</span><span class="more">›</span></div>
+            </div>
+          </div>
+          <div class="buybar"><div class="buy">매수</div><div class="sell">매도</div></div>
+        </div>
+      </div>
+
+      <div class="navbar">
+        <div class="nv"><span class="i">☰</span></div>
+        <div class="nv"><span class="i">🏠</span>홈</div>
+        <div class="nv"><span class="i">🔍</span>주식<br>검색</div>
+        <div class="nv"><span class="i">★</span>관심<br>그룹</div>
+        <div class="nv"><span class="i">📈</span>주식<br>잔고·손익</div>
+        <div class="nv"><span class="i">📊</span>계좌<br>자산추이</div>
+        <div class="nv"><span class="i layers">▤</span></div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+  <div class="hint" id="hint"><b>커뮤니티 시그널</b> 카드를 탭하면 펼쳐지고, 상단에서 <b>매매↔게시글</b> 소스를 바꿀 수 있어요. 각 시그널을 탭하면 실제 거래내역·게시글이 근거로 열립니다.</div>
+
+<script>
+/* ===== 워치리스트 ===== */
+const STOCKS=[
+ {nm:"미래반도체",cd:"254490",dir:"up"},
+ {nm:"이노테크",cd:"469610",dir:"up",sel:true},
+ {nm:"케이엔제이",cd:"272110",dir:"down"},
+ {nm:"엘티씨",cd:"170920",dir:"up",tri:true},
+ {nm:"#원텍",cd:"336570",dir:"down"},
+ {nm:"오이솔루션",cd:"138080",dir:"up",tri:true},
+ {nm:"AP시스템",cd:"265520",dir:"up",tri:true},
+];
+function mark(dir){const c=dir==='down'?'#3583f8':'#ee342c';
+  return `<svg width="13" height="15" viewBox="0 0 13 15"><line x1="6.5" y1="1" x2="6.5" y2="14" stroke="${c}" stroke-width="1.3"/><rect x="3.2" y="5" width="6.6" height="5.5" rx="1" fill="${c}"/></svg>`;}
+const watchList=document.getElementById('watchList');
+STOCKS.forEach(s=>{const el=document.createElement('div');el.className='w-item'+(s.sel?' sel':'');
+  el.innerHTML=`<span class="w-ic">${mark(s.dir)}</span><div><div class="nm">${s.nm}</div><div class="cd">KOSDAQ ${s.cd}</div></div>${s.tri?'<span class="tri"></span>':''}`;
+  el.onclick=()=>{document.querySelectorAll('.w-item').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');toast(`<b>${s.nm}</b> 종목으로 전환했어요`);};
+  watchList.appendChild(el);});
+
+/* ===== 차트 ===== */
+function drawChart(){
+  const seq=[16,15,17,14,16,15,18,16,19,22,28,36,47,58,66,60,52,46,40,44,38,33,29,34,30,26,31,27,24,29,34,40,36,31,37,44,40,46,53,60];
+  let out='';let x=2;const base=100;const w=6.7;
+  seq.forEach((h,i)=>{const prev=seq[i-1]??h;const col=h>=prev?'#ee342c':'#3583f8';
+    const top=base-h*1.12;const bh=Math.max(3,Math.abs(h-prev)*1.0+5);
+    out+=`<line x1="${x+(w-1.6)/2}" y1="${top-3}" x2="${x+(w-1.6)/2}" y2="${top+bh+3}" stroke="${col}" stroke-width="1"/><rect x="${x}" y="${top}" width="${w-1.6}" height="${bh}" rx="0.5" fill="${col}"/>`;
+    x+=w;});
+  document.getElementById('chart').innerHTML=`<svg viewBox="0 0 ${x} 106" width="100%" height="100%" preserveAspectRatio="none">${out}</svg>`;
+}
+drawChart();
+
+/* ===== 토스트 ===== */
+let tt;function toast(m){const t=document.getElementById('toast');t.innerHTML=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),1900);}
+
+/* ===== 데이터 (게시글 시그널) ===== */
+const KO={good:'호재',bad:'악재',warn:'주의',news:'소식'};
+
+const POST={
+  sample:'이노테크 채널 최근 24시간 게시글 <b>318건</b> 감성 분석 기준',
+  signals:[
+    {l:'good',conf:'표본 318건',ttl:'긍정 게시글 비중 64% (전일 +11%p)',
+     bar:[64,23,13],
+     lead:'매수·보유 우호 글이 <b>64%</b>로 전일 대비 +11%p 상승. 분위기가 빠르게 우호적으로 바뀌고 있어요.',
+     posts:[
+       {a:'#9b6cff',ic:'반',n:'반도체불개미',pt:'pos',px:'소재주 중에 제일 깔끔하다 더 간다 🚀'},
+       {a:'#2b6cff',ic:'장',n:'장기보유러',pt:'pos',px:'실적 보고 들어왔다 안 판다'},
+     ]},
+    {l:'news',conf:'코스닥 소재 1위',ttl:'커뮤니티 관심도 급증 — 신규 글 142건',
+     lead:'채널 신규 글 <b>142건</b>으로 전일 대비 <b>2.8배</b>, 코스닥 소재주 1위권. 관심 쏠림이 거래대금 급증과 동행해요.',
+     posts:[
+       {a:'#15a85a',ic:'N',n:'채널 활동 요약',pt:'',px:'신규 글 142건 · 댓글 510건 · 신규 팔로워 88명'},
+     ]},
+    {l:'warn',conf:'경계성 21%',ttl:'‘고점·조정’ 경계 키워드 빈도 상승',
+     lead:'전체 글의 <b>21%</b>가 ‘고점·조정·차익실현’ 표현 포함. 급등 직후 과열을 경계하는 목소리도 늘고 있어요.',
+     posts:[
+       {a:'#e8870b',ic:'슬',n:'슬슬불안한개미',pt:'cau',px:'이 정도 올랐으면 슬슬 고점 아니냐'},
+       {a:'#888',ic:'조',n:'조정기다림',pt:'cau',px:'조정 오면 더 담는다, 지금은 관망'},
+     ]},
+  ]
+};
+
+function counts(d){const c={good:0,bad:0,warn:0,news:0};d.signals.forEach(s=>c[s.l]++);return c;}
+function chipHTML(){
+  const c=counts(POST);const order=[['good','호재'],['warn','주의'],['bad','악재'],['news','소식']];
+  return order.filter(([k])=>c[k]).map(([k,t])=>`<span class="chip ${k}">${t} <span class="n">${c[k]}</span></span>`).join('');
+}
+function postRows(ps){return ps.map(p=>`
+  <div class="post"><div class="ph"><div class="pa" style="background:${p.a}">${p.ic}</div><span class="pn">${p.n}</span>${p.pt?`<span class="pt ${p.pt}">${({pos:'긍정',neg:'부정',cau:'경계'})[p.pt]}</span>`:''}</div>
+    <div class="px">${p.px}</div></div>`).join('');}
+function barHTML(b){if(!b)return'';const[p,n,g]=b;
+  return `<div class="bar"><i class="b-pos" style="width:${p}%"></i><i class="b-neu" style="width:${n}%"></i><i class="b-neg" style="width:${g}%"></i></div>
+   <div class="barlg"><span>긍정 <b>${p}%</b></span><span>중립 ${n}%</span><span>부정 ${g}%</span></div>`;}
+
+function render(){
+  document.getElementById('scChips').innerHTML=chipHTML();
+  document.getElementById('scSample').innerHTML=POST.sample;
+  document.getElementById('list').innerHTML=POST.signals.map((s,i)=>{
+    const ev=`<div class="ev"><div class="lead">${s.lead}</div>${barHTML(s.bar)}<div class="src-h">근거 · 커뮤니티 게시글</div>${postRows(s.posts)}</div>`;
+    return `<div class="srow" data-i="${i}"><div class="r1"><span class="label ${s.l}">${KO[s.l]}</span><span class="conf">${s.conf}<span class="arr">›</span></span></div>
+      <div class="stt">${s.ttl}</div><div class="why"><div class="in">${ev}</div></div></div>`;
+  }).join('');
+}
+render();
+
+/* ===== 인터랙션 ===== */
+const card=document.getElementById('sigCard');
+document.getElementById('scHead').addEventListener('click',()=>{
+  card.classList.toggle('open');
+  document.getElementById('hint').innerHTML = card.classList.contains('open')
+    ? '펼친 상태 — 각 시그널을 탭하면 실제 커뮤니티 게시글이 근거로 열려요.'
+    : '<b>커뮤니티 시그널</b> 카드를 탭하면 펼쳐지고, 각 시그널을 탭하면 실제 게시글이 근거로 열립니다.';
+});
+document.getElementById('list').addEventListener('click',e=>{
+  const row=e.target.closest('.srow');if(!row)return;
+  row.classList.toggle('o');
+});
+</script>
+</body>
+</html>
