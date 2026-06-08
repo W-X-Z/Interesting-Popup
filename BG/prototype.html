@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관심그룹 팝업 · 이슈 콘텐츠 인터랙션 프로토타입</title>
+<style>
+  :root{
+    --up:#f04452;      /* 호재 / 상승 (한국 관례: 빨강) */
+    --down:#3478f6;    /* 악재 / 하락 (파랑) */
+    --news:#f59e0b;    /* 소식 / 중립 (앰버) */
+    --ink:#191f28;
+    --sub:#6b7684;
+    --line:#eef0f3;
+    --bg:#0e1116;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;
+    font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b2330,#0e1116 60%);
+    color:#e8edf4;
+    padding:32px 20px 80px;
+  }
+  h1{font-size:20px;font-weight:800;margin:0 0 4px;letter-spacing:-.3px;}
+  .lede{color:#9aa6b5;font-size:13px;margin:0 0 28px;line-height:1.6;max-width:780px;}
+  .lede b{color:#cdd6e2;}
+
+  .rail{
+    display:flex;gap:26px;overflow-x:auto;padding:6px 4px 26px;
+    scroll-snap-type:x proximity;
+  }
+  .stage{flex:0 0 auto;scroll-snap-align:center;}
+  .caption{font-size:13px;font-weight:700;margin:0 0 4px;color:#eaf0f7;}
+  .caption .num{display:inline-block;background:#2b6cff;color:#fff;border-radius:6px;
+    padding:1px 7px;margin-right:6px;font-size:12px;}
+  .subcap{font-size:11px;color:#8a96a6;margin:0 0 12px;height:14px;}
+
+  /* ---- phone frame ---- */
+  .frame{
+    width:335px;height:726px;overflow:hidden;border-radius:34px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.04) inset;
+    position:relative;background:#000;
+  }
+  .phone{
+    width:540px;height:1170px;transform:scale(.62);transform-origin:0 0;
+    position:relative;
+    background-image:url("assets/popup.png");
+    background-size:540px 1170px;background-repeat:no-repeat;
+  }
+  .viewport{
+    position:absolute;left:197px;top:245px;width:343px;height:706px;
+    overflow-y:auto;overflow-x:hidden;background:#fff;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .viewport::-webkit-scrollbar{display:none;}
+  .seg{display:block;width:343px;}
+  .widget{width:343px;background:#fff;padding:4px 16px 14px;}
+
+  /* ---- shared card bits ---- */
+  .wtitle{display:flex;align-items:center;justify-content:space-between;margin:2px 0 10px;}
+  .wtitle h3{font-size:15px;font-weight:800;color:var(--ink);margin:0;letter-spacing:-.3px;}
+  .wtitle .more{font-size:12px;color:var(--sub);border:0;background:none;cursor:pointer;}
+
+  .chip{font-size:11px;font-weight:800;border-radius:999px;padding:3px 8px;line-height:1;white-space:nowrap;}
+  .chip.up{color:var(--up);background:rgba(240,68,82,.10);}
+  .chip.down{color:var(--down);background:rgba(52,120,246,.10);}
+  .chip.news{color:#b8770a;background:rgba(245,158,11,.13);}
+
+  .card{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);
+    border-radius:14px;margin-bottom:8px;background:#fff;cursor:pointer;transition:.15s;}
+  .card:active{transform:scale(.985);}
+  .card .body{flex:1;min-width:0;}
+  .card .head{display:flex;gap:6px;align-items:center;margin-bottom:3px;}
+  .card .h{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.35;letter-spacing:-.3px;}
+  .card .meta{font-size:11px;color:var(--sub);margin-top:4px;}
+  .card .detail{font-size:12px;color:#3d4754;line-height:1.55;margin-top:8px;
+    max-height:0;overflow:hidden;opacity:0;transition:.28s ease;}
+  .card.open .detail{max-height:160px;opacity:1;}
+  .card .chev{color:#c0c8d2;font-size:13px;transition:.25s;margin-top:1px;}
+  .card.open .chev{transform:rotate(180deg);}
+
+  .baricon{width:6px;border-radius:3px;align-self:stretch;flex:0 0 6px;}
+  .baricon.up{background:var(--up);}
+  .baricon.down{background:var(--down);}
+  .baricon.news{background:var(--news);}
+
+  /* ---- 2안 accordion ---- */
+  .acc-extra{overflow:hidden;max-height:0;transition:max-height .35s ease;}
+  .acc-extra.open{max-height:520px;}
+  .morebtn{width:100%;border:1px solid var(--line);background:#f7f9fb;border-radius:12px;
+    padding:10px;font-size:12.5px;font-weight:700;color:#46505d;cursor:pointer;margin-top:2px;}
+  .morebtn .ic{display:inline-block;transition:.25s;margin-left:4px;}
+  .morebtn.open .ic{transform:rotate(180deg);}
+
+  /* ---- 3안 carousel ---- */
+  .caro{position:relative;}
+  .caro-win{overflow:hidden;border-radius:16px;}
+  .caro-track{display:flex;transition:transform .32s cubic-bezier(.4,0,.2,1);}
+  .slide{flex:0 0 100%;padding:14px;border-radius:16px;color:#fff;min-height:150px;
+    display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;}
+  .slide.up{background:linear-gradient(135deg,#ff5a6a,#e0303f);}
+  .slide.down{background:linear-gradient(135deg,#5a93ff,#2f63e0);}
+  .slide.news{background:linear-gradient(135deg,#ffb43d,#f0890c);}
+  .slide .kind{font-size:11px;font-weight:800;opacity:.9;}
+  .slide .st{font-size:16px;font-weight:800;line-height:1.4;letter-spacing:-.3px;margin-top:8px;}
+  .slide .sd{font-size:12px;line-height:1.5;opacity:.95;margin-top:8px;}
+  .slide .sm{font-size:11px;opacity:.85;margin-top:10px;}
+  .caro-bar{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+  .dots{display:flex;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:#d3d9e0;transition:.2s;}
+  .dot.on{width:18px;border-radius:3px;background:var(--ink);}
+  .navbtn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;
+    font-size:14px;color:#46505d;cursor:pointer;display:grid;place-items:center;}
+
+  /* ---- 4안 tabs + gauge ---- */
+  .gauge{height:8px;border-radius:6px;overflow:hidden;display:flex;margin:2px 0 12px;}
+  .gauge i{display:block;height:100%;}
+  .gauge .gu{background:var(--up);} .gauge .gd{background:var(--down);} .gauge .gn{background:var(--news);}
+  .gmeta{display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin:-8px 0 12px;}
+  .gmeta .u{color:var(--up);} .gmeta .d{color:var(--down);} .gmeta .n{color:#b8770a;}
+  .seg-tabs{display:flex;gap:6px;background:#f1f4f7;border-radius:11px;padding:4px;margin-bottom:12px;}
+  .seg-tabs button{flex:1;border:0;background:none;font-size:12px;font-weight:700;color:var(--sub);
+    padding:7px 0;border-radius:8px;cursor:pointer;transition:.15s;}
+  .seg-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+
+  /* ---- 5안 timeline ---- */
+  .ai-banner{background:linear-gradient(135deg,#2b6cff,#6a3bff);color:#fff;border-radius:14px;
+    padding:12px 14px;margin-bottom:14px;}
+  .ai-banner .t{font-size:11px;font-weight:800;opacity:.85;display:flex;align-items:center;gap:5px;}
+  .ai-banner .s{font-size:13px;font-weight:700;line-height:1.5;margin-top:6px;letter-spacing:-.3px;}
+  .tl{position:relative;padding-left:20px;}
+  .tl:before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--line);}
+  .tl-item{position:relative;padding:0 0 14px;cursor:pointer;}
+  .tl-item:last-child{padding-bottom:2px;}
+  .tl-item .node{position:absolute;left:-19px;top:3px;width:12px;height:12px;border-radius:50%;
+    border:2px solid #fff;box-shadow:0 0 0 2px currentColor;}
+  .tl-item.up .node{color:var(--up);background:var(--up);}
+  .tl-item.down .node{color:var(--down);background:var(--down);}
+  .tl-item.news .node{color:var(--news);background:var(--news);}
+  .tl-item .tt{font-size:13px;font-weight:700;color:var(--ink);line-height:1.4;letter-spacing:-.3px;}
+  .tl-item .tm{font-size:11px;color:var(--sub);margin-top:3px;}
+  .tl-item .td{font-size:12px;color:#3d4754;line-height:1.5;margin-top:6px;max-height:0;overflow:hidden;opacity:0;transition:.28s;}
+  .tl-item.open .td{max-height:140px;opacity:1;}
+
+  .hint{margin-top:36px;color:#7e8a99;font-size:12px;line-height:1.7;max-width:780px;}
+  .hint code{background:#1b2330;padding:1px 6px;border-radius:5px;color:#aebccd;}
+</style>
+</head>
+<body>
+  <h1>관심그룹 팝업 · 이슈 콘텐츠 인터랙션 프로토타입</h1>
+  <p class="lede">
+    <b>popup.png</b> 위에 <b>tobe</b>(빈 스크롤 영역)를 올리고, 비어둔 공간에 새 콘텐츠를 채운 5개 안입니다.
+    각 폰의 콘텐츠 영역은 실제로 <b>스크롤·탭·스와이프</b>됩니다. 카드를 눌러보세요.
+  </p>
+
+  <div class="rail">
+    <!-- ===================== 1안 ===================== -->
+    <section class="stage">
+      <div class="caption"><span class="num">1안</span>호재·악재·소식 3종 요약</div>
+      <div class="subcap">대표 이슈 3개를 한눈에 · 탭하면 상세 펼침</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget" id="w1">
+          <div class="wtitle"><h3>오늘의 이슈</h3><span style="font-size:11px;color:var(--sub)">실시간 · 3건</span></div>
+          <!-- cards injected -->
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+
+    <!-- ===================== 2안 ===================== -->
+    <section class="stage">
+      <div class="caption"><span class="num">2안</span>더보기 아코디언</div>
+      <div class="subcap">기본 2건 + ‘더보기’로 추가 이슈 펼침</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget" id="w2">
+          <div class="wtitle"><h3>이슈 브리핑</h3></div>
+          <div id="w2base"></div>
+          <div class="acc-extra" id="w2extra"></div>
+          <button class="morebtn" id="w2btn">이슈 3건 더보기 <span class="ic">▾</span></button>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+
+    <!-- ===================== 3안 ===================== -->
+    <section class="stage">
+      <div class="caption"><span class="num">3안</span>이슈 카드 넘기기</div>
+      <div class="subcap">카드 탭/화살표로 좌우 전환 · 색으로 성격 구분</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget" id="w3">
+          <div class="wtitle"><h3>이슈 카드</h3><span id="w3count" style="font-size:11px;color:var(--sub)"></span></div>
+          <div class="caro">
+            <div class="caro-win"><div class="caro-track" id="w3track"></div></div>
+            <div class="caro-bar">
+              <div class="dots" id="w3dots"></div>
+              <div style="display:flex;gap:6px;">
+                <button class="navbtn" id="w3prev">‹</button>
+                <button class="navbtn" id="w3next">›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+
+    <!-- ===================== 4안 ===================== -->
+    <section class="stage">
+      <div class="caption"><span class="num">4안</span>카테고리 탭 + 센티먼트 게이지 <span style="color:#8a96a6;font-weight:600;font-size:11px">(제안)</span></div>
+      <div class="subcap">호재/악재 비중 게이지 + 탭으로 필터</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget" id="w4">
+          <div class="wtitle"><h3>이슈 센티먼트</h3><span style="font-size:11px;color:var(--up);font-weight:700">호재 우세</span></div>
+          <div class="gauge"><i class="gu" style="width:55%"></i><i class="gd" style="width:30%"></i><i class="gn" style="width:15%"></i></div>
+          <div class="gmeta"><span class="u">호재 55%</span><span class="d">악재 30%</span><span class="n">소식 15%</span></div>
+          <div class="seg-tabs" id="w4tabs">
+            <button data-f="all" class="on">전체</button>
+            <button data-f="up">호재</button>
+            <button data-f="down">악재</button>
+            <button data-f="news">소식</button>
+          </div>
+          <div id="w4list"></div>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+
+    <!-- ===================== 5안 ===================== -->
+    <section class="stage">
+      <div class="caption"><span class="num">5안</span>AI 요약 + 이슈 타임라인 <span style="color:#8a96a6;font-weight:600;font-size:11px">(제안)</span></div>
+      <div class="subcap">AI 한 줄 요약 + 시간순 이슈 흐름 · 탭 상세</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget" id="w5">
+          <div class="ai-banner">
+            <div class="t">✨ AI 이슈 요약</div>
+            <div class="s">HBM4 조기 양산 기대로 외국인 매수세가 유입됐으나, 단기 차익실현 매물도 출회 중입니다.</div>
+          </div>
+          <div class="tl" id="w5tl"></div>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+  </div>
+
+  <p class="hint">
+    배경 <code>popup.png</code> 위에 스크롤 영역(<code>left 197 / top 245 / 343×706</code>)을 정렬하고,
+    상단 시세(<code>tobe_top</code>)와 차트·뉴스(<code>tobe_bottom</code>) 사이에 새 콘텐츠를 끼워 넣었습니다.
+    아코디언/탭 확장 시 아래 차트·뉴스가 자연스럽게 밀립니다.
+  </p>
+
+<script>
+/* ---------- 공통 데이터 ---------- */
+const ISSUES = [
+  {k:'up',  tag:'호재', h:'엔비디아, HBM4 조기 양산 요청', m:'6시간 전 · 한국경제',
+    d:'엔비디아가 차세대 AI 가속기용 HBM4 공급 일정을 앞당겨 달라고 요청. SK하이닉스 선점 효과 부각.'},
+  {k:'down',tag:'악재', h:'메모리 현물가 단기 조정…차익실현 매물', m:'3시간 전 · 전자신문',
+    d:'급등 후 D램 현물가가 소폭 되돌림. 단기 과열 부담에 기관 중심 차익 실현 물량 출회.'},
+  {k:'news',tag:'소식', h:'3분기 실적발표 D-12, 컨센서스 영업익 9.2조', m:'9시간 전 · 공시',
+    d:'시장 컨센서스 영업이익 9.2조원. HBM 비중 확대에 따른 믹스 개선 폭이 관전 포인트.'},
+  {k:'up',  tag:'호재', h:'외국인 5거래일 연속 순매수 · 2,400억 유입', m:'1시간 전 · 인포맥스',
+    d:'외국인이 5거래일 연속 순매수하며 누적 2,400억원 유입. AI 반도체 비중 확대 흐름.'},
+  {k:'down',tag:'악재', h:'환율 변동성 확대에 원가 마진 압박 우려', m:'7시간 전 · 머니투데이',
+    d:'환율 급등락으로 원소재 조달 비용 변동성 확대. 일부 증권사 마진 추정치 하향.'},
+  {k:'news',tag:'소식', h:'신규 후공정 라인 증설 투자 발표 임박', m:'12시간 전 · 업계',
+    d:'HBM 패키징 캐파 확대를 위한 신규 후공정 라인 증설 검토. 이르면 이번 주 공시 전망.'},
+];
+const KIND = {up:'up',down:'down',news:'news'};
+
+/* ---------- 1안 ---------- */
+(function(){
+  const wrap = document.getElementById('w1');
+  ISSUES.slice(0,3).forEach((it)=>{
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.innerHTML = `
+      <span class="baricon ${it.k}"></span>
+      <div class="body">
+        <div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
+        <div class="h">${it.h}</div>
+        <div class="meta">${it.m}</div>
+        <div class="detail">${it.d}</div>
+      </div>
+      <span class="chev">▾</span>`;
+    c.onclick = ()=> c.classList.toggle('open');
+    wrap.appendChild(c);
+  });
+})();
+
+/* ---------- 2안 ---------- */
+(function(){
+  function make(it){
+    const c=document.createElement('div');
+    c.className='card';
+    c.innerHTML=`<span class="baricon ${it.k}"></span>
+      <div class="body"><div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
+      <div class="h">${it.h}</div><div class="meta">${it.m}</div>
+      <div class="detail">${it.d}</div></div><span class="chev">▾</span>`;
+    c.onclick=()=>c.classList.toggle('open');
+    return c;
+  }
+  const base=document.getElementById('w2base'), extra=document.getElementById('w2extra');
+  ISSUES.slice(0,2).forEach(it=>base.appendChild(make(it)));
+  ISSUES.slice(2,5).forEach(it=>extra.appendChild(make(it)));
+  const btn=document.getElementById('w2btn');
+  btn.onclick=()=>{
+    const open=extra.classList.toggle('open');
+    btn.classList.toggle('open',open);
+    btn.firstChild.textContent = open ? '접기 ' : '이슈 3건 더보기 ';
+  };
+})();
+
+/* ---------- 3안 ---------- */
+(function(){
+  const cards=ISSUES.slice(0,4);
+  const track=document.getElementById('w3track');
+  const dots=document.getElementById('w3dots');
+  const count=document.getElementById('w3count');
+  let idx=0;
+  cards.forEach((it,i)=>{
+    const s=document.createElement('div');
+    s.className='slide '+it.k;
+    s.innerHTML=`<div><div class="kind">${it.tag} 이슈</div>
+      <div class="st">${it.h}</div><div class="sd">${it.d}</div></div>
+      <div class="sm">${it.m}</div>`;
+    s.onclick=()=>go(idx+1);
+    track.appendChild(s);
+    const d=document.createElement('span'); d.className='dot'+(i===0?' on':''); dots.appendChild(d);
+  });
+  function go(n){
+    idx=(n+cards.length)%cards.length;
+    track.style.transform=`translateX(${-idx*100}%)`;
+    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
+    count.textContent=`${idx+1} / ${cards.length}`;
+  }
+  document.getElementById('w3prev').onclick=()=>go(idx-1);
+  document.getElementById('w3next').onclick=()=>go(idx+1);
+  go(0);
+})();
+
+/* ---------- 4안 ---------- */
+(function(){
+  const list=document.getElementById('w4list');
+  function render(f){
+    list.innerHTML='';
+    ISSUES.filter(it=>f==='all'||it.k===f).forEach(it=>{
+      const c=document.createElement('div');
+      c.className='card';
+      c.innerHTML=`<span class="baricon ${it.k}"></span>
+        <div class="body"><div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
+        <div class="h">${it.h}</div><div class="meta">${it.m}</div>
+        <div class="detail">${it.d}</div></div><span class="chev">▾</span>`;
+      c.onclick=()=>c.classList.toggle('open');
+      list.appendChild(c);
+    });
+  }
+  const tabs=document.getElementById('w4tabs');
+  tabs.querySelectorAll('button').forEach(b=>{
+    b.onclick=()=>{
+      tabs.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); render(b.dataset.f);
+    };
+  });
+  render('all');
+})();
+
+/* ---------- 5안 ---------- */
+(function(){
+  const tl=document.getElementById('w5tl');
+  const order=[ISSUES[3],ISSUES[1],ISSUES[0],ISSUES[2],ISSUES[4]];
+  order.forEach(it=>{
+    const el=document.createElement('div');
+    el.className='tl-item '+it.k;
+    el.innerHTML=`<span class="node"></span>
+      <div class="tt">${it.h}</div><div class="tm">${it.m}</div>
+      <div class="td">${it.d}</div>`;
+    el.onclick=()=>el.classList.toggle('open');
+    tl.appendChild(el);
+  });
+})();
+</script>
+</body>
+</html>
