@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>리스트형 이슈 UI · 경쟁안 프로토타입</title>
+<style>
+  :root{
+    --up:#f04452;     /* 호재 (상승, 빨강) */
+    --down:#3478f6;   /* 악재 (하락, 파랑) */
+    --news:#9aa3ad;   /* 소식 (중립, 그레이) */
+    --ink:#191f28;
+    --sub:#8b95a1;
+    --line:#eef0f3;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;
+    font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b2330,#0e1116 60%);
+    color:#e8edf4;padding:32px 20px 80px;
+  }
+  h1{font-size:20px;font-weight:800;margin:0 0 4px;letter-spacing:-.3px;}
+  .lede{color:#9aa6b5;font-size:13px;margin:0 0 26px;line-height:1.6;max-width:760px;}
+  .lede b{color:#cdd6e2;}
+
+  .rail{display:flex;gap:26px;overflow-x:auto;padding:6px 4px 26px;}
+  .stage{flex:0 0 auto;}
+  .caption{font-size:13px;font-weight:700;margin:0 0 4px;color:#eaf0f7;}
+  .caption .num{display:inline-block;background:#2b6cff;color:#fff;border-radius:6px;
+    padding:1px 8px;margin-right:6px;font-size:12px;}
+  .caption .num.sug{background:#7a52ff;}
+  .subcap{font-size:11px;color:#8a96a6;margin:0 0 12px;height:14px;}
+
+  /* ---- phone frame ---- */
+  .frame{
+    width:335px;height:726px;overflow:hidden;border-radius:34px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.04) inset;
+    position:relative;background:#000;
+  }
+  .phone{
+    width:540px;height:1170px;transform:scale(.62);transform-origin:0 0;
+    position:relative;
+    background-image:url("assets/popup.png");background-size:540px 1170px;background-repeat:no-repeat;
+  }
+  .viewport{
+    position:absolute;left:197px;top:245px;width:343px;height:706px;
+    overflow-y:auto;overflow-x:hidden;background:#f8f8f8;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .viewport::-webkit-scrollbar{display:none;}
+  .seg{display:block;width:343px;}
+  .widget{width:343px;background:#f8f8f8;padding:12px 16px 14px;position:relative;}
+
+  /* ---- 리스트 공통 ---- */
+  .whead{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px;}
+  .whead h3{font-size:14px;font-weight:800;color:var(--ink);margin:0;letter-spacing:-.3px;}
+  .whead .act{font-size:12px;color:var(--sub);border:0;background:none;cursor:pointer;display:flex;align-items:center;gap:2px;}
+
+  .list{background:#fff;border:1px solid var(--line);border-radius:14px;padding:2px 12px;}
+  .row{display:flex;align-items:center;gap:9px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer;}
+  .row:last-child{border-bottom:0;}
+  .dot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;}
+  .dot.up{background:var(--up);} .dot.down{background:var(--down);} .dot.news{background:var(--news);}
+  .rtitle{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);line-height:1.35;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rtime{flex:0 0 auto;font-size:11px;color:var(--sub);}
+
+  /* A. 아코디언 */
+  .acc{overflow:hidden;max-height:0;transition:max-height .35s ease;}
+  .acc.open{max-height:340px;}
+  .morebtn{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;
+    padding:9px;font-size:12.5px;font-weight:700;color:#46505d;cursor:pointer;margin-top:8px;}
+  .morebtn .ic{display:inline-block;transition:.25s;margin-left:3px;}
+  .morebtn.open .ic{transform:rotate(180deg);}
+
+  /* B. 2depth */
+  .depth{
+    position:absolute;inset:0;background:#f8f8f8;z-index:8;
+    transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;
+  }
+  .depth.open{transform:translateX(0);}
+  .depth-bar{display:flex;align-items:center;gap:8px;padding:14px 14px 10px;background:#fff;border-bottom:1px solid var(--line);}
+  .depth-bar .bk{background:none;border:0;font-size:20px;color:#46505d;cursor:pointer;line-height:1;padding:0;}
+  .depth-bar .dt{font-size:15px;font-weight:800;color:var(--ink);}
+  .depth-bar .dc{font-size:11px;color:var(--sub);margin-left:auto;}
+  .depth-list{flex:1;overflow-y:auto;padding:4px 16px 16px;scrollbar-width:none;}
+  .depth-list::-webkit-scrollbar{display:none;}
+
+  /* C. 2분할 */
+  .sentibar{display:flex;height:6px;border-radius:4px;overflow:hidden;margin:2px 0 4px;}
+  .sentibar i{display:block;height:100%;}
+  .sentibar .su{background:var(--up);} .sentibar .sd{background:var(--down);}
+  .sentimeta{display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:10px;}
+  .sentimeta .u{color:var(--up);} .sentimeta .d{color:var(--down);}
+  .cols{display:flex;gap:8px;}
+  .col{flex:1;min-width:0;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;}
+  .col h4{font-size:11.5px;font-weight:800;margin:0 0 4px;display:flex;align-items:center;gap:4px;}
+  .col.up h4{color:var(--up);} .col.down h4{color:var(--down);}
+  .citem{font-size:12px;color:var(--ink);line-height:1.3;padding:6px 0;border-top:1px solid var(--line);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+  .col h4 + .citem{border-top:0;}
+
+  .hint{margin-top:34px;color:#7e8a99;font-size:12px;line-height:1.7;max-width:760px;}
+</style>
+</head>
+<body>
+  <h1>리스트형 이슈 UI · 경쟁안</h1>
+  <p class="lede">
+    카드형 대비 <b>여러 이슈를 빠르게 훑기</b> 좋은 리스트형 안입니다. 호재·악재는 <b>색(빨강/파랑)</b>으로만 구분하고,
+    제한된 공간에 우선 3건을 노출합니다. 3건 초과 시 처리 방식을 A·B로, 한눈 보기 아이디어를 C로 제안합니다.
+  </p>
+
+  <div class="rail">
+    <!-- ===== A안: 리스트 + 펼치기 ===== -->
+    <section class="stage">
+      <div class="caption"><span class="num">A안</span>리스트 + 펼치기(아코디언)</div>
+      <div class="subcap">3건 노출 · ‘더보기’로 같은 화면에서 확장</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget">
+          <div class="whead"><h3>종목 이슈</h3><span style="font-size:11px;color:var(--sub)">7건</span></div>
+          <div class="list">
+            <div id="aBase"></div>
+            <div class="acc" id="aAcc"></div>
+          </div>
+          <button class="morebtn" id="aBtn">이슈 4건 더보기 <span class="ic">▾</span></button>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+
+    <!-- ===== B안: 리스트 + 2depth ===== -->
+    <section class="stage">
+      <div class="caption"><span class="num">B안</span>리스트 + 2depth</div>
+      <div class="subcap">3건 노출 · ‘전체보기’ → 팝업 내 2depth 목록</div>
+      <div class="frame"><div class="phone"><div class="viewport" id="bViewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget">
+          <div class="whead"><h3>종목 이슈</h3><button class="act" id="bOpen">전체보기 <span>›</span></button></div>
+          <div class="list" id="bList"></div>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+        <div class="depth" id="bDepth">
+          <div class="depth-bar">
+            <button class="bk" id="bBack">‹</button>
+            <span class="dt">종목 이슈</span>
+            <span class="dc">전체 7건</span>
+          </div>
+          <div class="depth-list" id="bDeep"></div>
+        </div>
+      </div></div></div>
+    </section>
+
+    <!-- ===== C안: 2분할 한눈 보기 ===== -->
+    <section class="stage">
+      <div class="caption"><span class="num sug">C안</span>호재·악재 2분할 한눈 보기 <span style="color:#8a96a6;font-weight:600;font-size:11px">(제안)</span></div>
+      <div class="subcap">성격별 2열로 6건 동시 노출 · 비중까지 직관</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget">
+          <div class="whead"><h3>종목 이슈</h3><span style="font-size:11px;color:var(--sub)">오늘 7건</span></div>
+          <div class="sentibar"><i class="su" style="width:43%"></i><i class="sd" style="width:57%"></i></div>
+          <div class="sentimeta"><span class="u">호재 3</span><span class="d">악재 4</span></div>
+          <div class="cols">
+            <div class="col up"><h4>● 호재</h4><div id="cUp"></div></div>
+            <div class="col down"><h4>● 악재</h4><div id="cDown"></div></div>
+          </div>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+  </div>
+
+  <p class="hint">
+    동일 전제(<code style="background:#1b2330;padding:1px 6px;border-radius:5px;color:#aebccd;">popup.png</code> +
+    <code style="background:#1b2330;padding:1px 6px;border-radius:5px;color:#aebccd;">tobe</code> 스크롤 영역)에서
+    카드형(v1)과 비교하세요. A는 같은 화면 확장, B는 깊이 있는 전체 목록, C는 깊이 없이 한 화면에서 더 많은 이슈를 스캔하는 방향입니다.
+  </p>
+
+<script>
+const ISSUES=[
+  {k:'up',  t:'젠슨 황 "AI 관련주 주가 매우 싸다"', s:'AI 반도체 저평가 부각', time:'8시간 전'},
+  {k:'down',t:'외국인 5거래일 연속 순매도',        s:'외국인 매도',          time:'1시간 전'},
+  {k:'down',t:'주가 단기 급락, 차익실현 매물',      s:'단기 급락',            time:'3시간 전'},
+  {k:'up',  t:'HBM4 조기 양산 요청 부각',           s:'HBM4 수혜',           time:'6시간 전'},
+  {k:'news',t:'분기보고서·자기주식 처분 공시',      s:'주요 공시',            time:'어제'},
+  {k:'down',t:'메모리 현물가 단기 조정',            s:'현물가 조정',          time:'7시간 전'},
+  {k:'up',  t:'외국인 단타성 매수 일부 유입',        s:'단기 매수',            time:'9시간 전'},
+];
+
+function rowHTML(it){
+  return `<div class="row"><span class="dot ${it.k}"></span>`+
+         `<span class="rtitle">${it.t}</span><span class="rtime">${it.time}</span></div>`;
+}
+
+/* A. 아코디언 */
+(function(){
+  document.getElementById('aBase').innerHTML = ISSUES.slice(0,3).map(rowHTML).join('');
+  document.getElementById('aAcc').innerHTML  = ISSUES.slice(3).map(rowHTML).join('');
+  const btn=document.getElementById('aBtn'), acc=document.getElementById('aAcc');
+  btn.addEventListener('click',()=>{
+    const open=acc.classList.toggle('open');
+    btn.classList.toggle('open',open);
+    btn.firstChild.textContent = open ? '접기 ' : `이슈 ${ISSUES.length-3}건 더보기 `;
+  });
+})();
+
+/* B. 2depth */
+(function(){
+  document.getElementById('bList').innerHTML = ISSUES.slice(0,3).map(rowHTML).join('');
+  document.getElementById('bDeep').innerHTML = ISSUES.map(rowHTML).join('');
+  const depth=document.getElementById('bDepth'), vp=document.getElementById('bViewport');
+  document.getElementById('bOpen').addEventListener('click',()=>{depth.classList.add('open');vp.scrollTop=0;});
+  document.getElementById('bBack').addEventListener('click',()=>depth.classList.remove('open'));
+})();
+
+/* C. 2분할 */
+(function(){
+  const ups=ISSUES.filter(i=>i.k==='up').slice(0,3);
+  const downs=ISSUES.filter(i=>i.k==='down').slice(0,3);
+  const cItem=it=>`<div class="citem">${it.s}</div>`;
+  document.getElementById('cUp').innerHTML   = ups.map(cItem).join('');
+  document.getElementById('cDown').innerHTML = downs.map(cItem).join('');
+})();
+</script>
+</body>
+</html>
