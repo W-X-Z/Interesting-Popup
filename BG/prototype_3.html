@@ -37,12 +37,12 @@
   }
   .viewport{
     position:absolute;left:197px;top:245px;width:343px;height:706px;
-    overflow-y:auto;overflow-x:hidden;background:#fff;
+    overflow-y:auto;overflow-x:hidden;background:#f8f8f8;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;
   }
   .viewport::-webkit-scrollbar{display:none;}
   .seg{display:block;width:343px;}
-  .widget{width:343px;background:#fff;padding:12px 16px 16px;}
+  .widget{width:343px;background:#f8f8f8;padding:12px 16px 16px;}
 
   /* ---- carousel ---- */
   .caro{position:relative;}
@@ -59,9 +59,33 @@
     align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.2px;
     background:rgba(255,255,255,.22);padding:4px 11px;border-radius:999px;
   }
-  .slide .title{font-size:18px;font-weight:800;line-height:1.4;letter-spacing:-.4px;margin-top:14px;}
+  .title-row{display:flex;align-items:flex-start;gap:8px;margin-top:14px;}
+  .slide .title{flex:1;font-size:18px;font-weight:800;line-height:1.4;letter-spacing:-.4px;}
+  .go{flex:0 0 auto;background:rgba(255,255,255,.18);border:0;color:#fff;
+    width:26px;height:26px;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;
+    display:grid;place-items:center;margin-top:1px;transition:.15s;}
+  .go:hover{background:rgba(255,255,255,.34);}
   .slide .body{font-size:13.5px;line-height:1.6;opacity:.96;margin-top:10px;flex:1;}
   .slide .time{font-size:11px;opacity:.78;margin-top:14px;}
+
+  /* ---- 상세 화면 (스크롤 영역 전체를 덮는 별도 화면) ---- */
+  .detail{
+    position:absolute;inset:0;background:#f8f8f8;padding:14px 16px 20px;
+    overflow-y:auto;z-index:6;animation:slideIn .24s ease;
+  }
+  .detail::-webkit-scrollbar{display:none;}
+  @keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
+  .detail .back{background:none;border:0;color:#46505d;font-size:14px;font-weight:700;
+    cursor:pointer;padding:4px 0 14px;}
+  .dcard{background:#fff;border:1px solid #eef0f3;border-radius:16px;padding:18px;}
+  .dbadge{display:inline-block;font-size:12px;font-weight:800;padding:4px 11px;border-radius:999px;}
+  .dbadge.up{color:var(--up);background:rgba(240,68,82,.12);}
+  .dbadge.down{color:var(--down);background:rgba(52,120,246,.12);}
+  .dbadge.news{color:#b8770a;background:rgba(245,158,11,.14);}
+  .dcard h3{font-size:19px;font-weight:800;color:var(--ink);margin:14px 0 0;line-height:1.4;letter-spacing:-.3px;}
+  .dtime{font-size:11.5px;color:var(--sub);margin-top:8px;}
+  .dcard p{font-size:14px;color:#3d4754;line-height:1.7;margin:16px 0 0;}
+  .dmore{display:inline-block;margin-top:18px;font-size:13px;font-weight:700;color:var(--down);cursor:pointer;}
 
   .dots{display:flex;gap:7px;justify-content:center;margin-top:14px;}
   .dot{width:7px;height:7px;border-radius:50%;background:#d6dbe2;transition:.22s;cursor:pointer;}
@@ -133,10 +157,14 @@ function buildSlide(it){
   const s=document.createElement('div');
   s.className='slide '+it.k;
   s.innerHTML=`<span class="badge">${it.tag}</span>
-    <div class="title">${it.title}</div>
+    <div class="title-row">
+      <div class="title">${it.title}</div>
+      <button class="go" aria-label="상세 화면 보기">›</button>
+    </div>
     <div class="body">${it.body}</div>
     <div class="time">${it.time}</div>`;
   s.addEventListener('click',()=>next());
+  s.querySelector('.go').addEventListener('click',(e)=>{e.stopPropagation();openDetail(it);});
   return s;
 }
 
@@ -183,8 +211,27 @@ function jump(i){           // 도트 직접 선택
   setDots(i);
 }
 
-/* ---------- 온보딩(최초 1회) ---------- */
+/* ---------- 상세 화면 랜딩 ---------- */
 const caro=document.querySelector('.caro');
+const viewport=document.querySelector('.viewport');
+function openDetail(it){
+  if(document.getElementById('detail')) return;
+  const d=document.createElement('div');
+  d.className='detail';d.id='detail';
+  d.innerHTML=`<button class="back">‹ 뒤로</button>
+    <div class="dcard">
+      <span class="dbadge ${it.k}">${it.tag}</span>
+      <h3>${it.title}</h3>
+      <div class="dtime">${it.time} · SK하이닉스 이슈</div>
+      <p>${it.body} 실제 화면에서는 관련 지표·원문 기사·종목 영향도 등 상세 내용이 이어집니다.</p>
+      <a class="dmore">관련 기사 모두 보기 ›</a>
+    </div>`;
+  d.querySelector('.back').addEventListener('click',()=>d.remove());
+  viewport.appendChild(d);
+  viewport.scrollTop=0;
+}
+
+/* ---------- 온보딩(최초 1회) ---------- */
 function showCoach(){
   if(document.getElementById('coach')) return;
   const c=document.createElement('div');
