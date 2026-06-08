@@ -6,34 +6,31 @@
 <title>관심그룹 팝업 · 이슈 콘텐츠 인터랙션 프로토타입</title>
 <style>
   :root{
-    --up:#f04452;      /* 호재 / 상승 (한국 관례: 빨강) */
+    --up:#f04452;      /* 호재 / 상승 (빨강) */
     --down:#3478f6;    /* 악재 / 하락 (파랑) */
     --news:#f59e0b;    /* 소식 / 중립 (앰버) */
     --ink:#191f28;
     --sub:#6b7684;
     --line:#eef0f3;
-    --bg:#0e1116;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
     margin:0;
     font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",-apple-system,sans-serif;
     background:radial-gradient(1200px 600px at 50% -10%,#1b2330,#0e1116 60%);
-    color:#e8edf4;
-    padding:32px 20px 80px;
+    color:#e8edf4;padding:32px 20px 80px;
   }
   h1{font-size:20px;font-weight:800;margin:0 0 4px;letter-spacing:-.3px;}
-  .lede{color:#9aa6b5;font-size:13px;margin:0 0 28px;line-height:1.6;max-width:780px;}
+  .lede{color:#9aa6b5;font-size:13px;margin:0 0 28px;line-height:1.6;max-width:820px;}
   .lede b{color:#cdd6e2;}
 
-  .rail{
-    display:flex;gap:26px;overflow-x:auto;padding:6px 4px 26px;
-    scroll-snap-type:x proximity;
-  }
+  .rail{display:flex;gap:26px;overflow-x:auto;padding:6px 4px 26px;scroll-snap-type:x proximity;}
   .stage{flex:0 0 auto;scroll-snap-align:center;}
   .caption{font-size:13px;font-weight:700;margin:0 0 4px;color:#eaf0f7;}
   .caption .num{display:inline-block;background:#2b6cff;color:#fff;border-radius:6px;
     padding:1px 7px;margin-right:6px;font-size:12px;}
+  .caption .num.alt{background:#16a34a;}
+  .caption .num.sug{background:#7a52ff;}
   .subcap{font-size:11px;color:#8a96a6;margin:0 0 12px;height:14px;}
 
   /* ---- phone frame ---- */
@@ -45,8 +42,7 @@
   .phone{
     width:540px;height:1170px;transform:scale(.62);transform-origin:0 0;
     position:relative;
-    background-image:url("assets/popup.png");
-    background-size:540px 1170px;background-repeat:no-repeat;
+    background-image:url("assets/popup.png");background-size:540px 1170px;background-repeat:no-repeat;
   }
   .viewport{
     position:absolute;left:197px;top:245px;width:343px;height:706px;
@@ -55,13 +51,20 @@
   }
   .viewport::-webkit-scrollbar{display:none;}
   .seg{display:block;width:343px;}
-  .widget{width:343px;background:#f8f8f8;padding:4px 16px 14px;}
+  .widget{width:343px;background:#f8f8f8;padding:4px 16px 14px;position:relative;}
 
-  /* ---- shared card bits ---- */
+  /* ---- 현재가 상세 화면 랜딩 (공통) ---- */
+  .landing{position:absolute;inset:0;z-index:50;background:#fff;
+    transition:transform .26s cubic-bezier(.4,0,.2,1);}
+  .landing img{width:100%;height:100%;display:block;object-fit:cover;object-position:top;}
+  .back-hot{position:absolute;cursor:pointer;border-radius:8px;transition:background .12s;}
+  .back-hot.top{left:0;top:46px;width:130px;height:78px;}
+  .back-hot.bottom{left:300px;top:1104px;width:240px;height:66px;}
+  .back-hot:active{background:rgba(0,0,0,.10);}
+
+  /* ---- 카드/칩 ---- */
   .wtitle{display:flex;align-items:center;justify-content:space-between;margin:2px 0 10px;}
   .wtitle h3{font-size:15px;font-weight:800;color:var(--ink);margin:0;letter-spacing:-.3px;}
-  .wtitle .more{font-size:12px;color:var(--sub);border:0;background:none;cursor:pointer;}
-
   .chip{font-size:11px;font-weight:800;border-radius:999px;padding:3px 8px;line-height:1;white-space:nowrap;}
   .chip.up{color:var(--up);background:rgba(240,68,82,.10);}
   .chip.down{color:var(--down);background:rgba(52,120,246,.10);}
@@ -74,22 +77,15 @@
   .card .head{display:flex;gap:6px;align-items:center;margin-bottom:3px;}
   .card .h{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.35;letter-spacing:-.3px;}
   .card .meta{font-size:11px;color:var(--sub);margin-top:4px;}
-  .card .detail{font-size:12px;color:#3d4754;line-height:1.55;margin-top:8px;
-    max-height:0;overflow:hidden;opacity:0;transition:.28s ease;}
-  .card.open .detail{max-height:160px;opacity:1;}
-  .card .chev{color:#c0c8d2;font-size:13px;transition:.25s;margin-top:1px;}
-  .card.open .chev{transform:rotate(180deg);}
-
+  .card .chev{color:#c0c8d2;font-size:15px;margin-top:1px;}
   .baricon{width:6px;border-radius:3px;align-self:stretch;flex:0 0 6px;}
-  .baricon.up{background:var(--up);}
-  .baricon.down{background:var(--down);}
-  .baricon.news{background:var(--news);}
+  .baricon.up{background:var(--up);} .baricon.down{background:var(--down);} .baricon.news{background:var(--news);}
 
   /* ---- 2안 accordion ---- */
   .acc-extra{overflow:hidden;max-height:0;transition:max-height .35s ease;}
   .acc-extra.open{max-height:520px;}
-  .morebtn{width:100%;border:1px solid var(--line);background:#f7f9fb;border-radius:12px;
-    padding:10px;font-size:12.5px;font-weight:700;color:#46505d;cursor:pointer;margin-top:2px;}
+  .morebtn{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;
+    padding:9px;font-size:12.5px;font-weight:700;color:#46505d;cursor:pointer;margin-top:2px;}
   .morebtn .ic{display:inline-block;transition:.25s;margin-left:4px;}
   .morebtn.open .ic{transform:rotate(180deg);}
 
@@ -102,7 +98,9 @@
   .slide.up{background:linear-gradient(135deg,#ff5a6a,#e0303f);}
   .slide.down{background:linear-gradient(135deg,#5a93ff,#2f63e0);}
   .slide.news{background:linear-gradient(135deg,#ffb43d,#f0890c);}
+  .slide .stop{display:flex;justify-content:space-between;align-items:center;}
   .slide .kind{font-size:11px;font-weight:800;opacity:.9;}
+  .slide .go{background:rgba(255,255,255,.22);border:0;color:#fff;width:24px;height:24px;border-radius:50%;font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;}
   .slide .st{font-size:16px;font-weight:800;line-height:1.4;letter-spacing:-.3px;margin-top:8px;}
   .slide .sd{font-size:12px;line-height:1.5;opacity:.95;margin-top:8px;}
   .slide .sm{font-size:11px;opacity:.85;margin-top:10px;}
@@ -140,43 +138,79 @@
   .tl-item.news .node{color:var(--news);background:var(--news);}
   .tl-item .tt{font-size:13px;font-weight:700;color:var(--ink);line-height:1.4;letter-spacing:-.3px;}
   .tl-item .tm{font-size:11px;color:var(--sub);margin-top:3px;}
-  .tl-item .td{font-size:12px;color:#3d4754;line-height:1.5;margin-top:6px;max-height:0;overflow:hidden;opacity:0;transition:.28s;}
-  .tl-item.open .td{max-height:140px;opacity:1;}
 
-  .hint{margin-top:36px;color:#7e8a99;font-size:12px;line-height:1.7;max-width:780px;}
+  /* ---- 리스트(A/B/C) ---- */
+  .whead{display:flex;align-items:center;justify-content:space-between;margin:2px 0 8px;}
+  .whead h3{font-size:14px;font-weight:800;color:var(--ink);margin:0;letter-spacing:-.3px;}
+  .whead .act{font-size:12px;color:var(--sub);border:0;background:none;cursor:pointer;}
+  .list{background:#fff;border:1px solid var(--line);border-radius:14px;padding:2px 12px;}
+  .row{display:flex;align-items:center;gap:9px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer;}
+  .row:last-child{border-bottom:0;}
+  .rdot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;}
+  .rdot.up{background:var(--up);} .rdot.down{background:var(--down);} .rdot.news{background:var(--news);}
+  .rtitle{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);line-height:1.35;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rtime{flex:0 0 auto;font-size:11px;color:var(--sub);}
+  .acc{overflow:hidden;max-height:0;transition:max-height .35s ease;}
+  .acc.open{max-height:360px;}
+
+  /* B 2depth */
+  .depth{position:absolute;inset:0;background:#f8f8f8;z-index:8;
+    transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+  .depth.open{transform:translateX(0);}
+  .depth-bar{display:flex;align-items:center;gap:8px;padding:14px 14px 10px;background:#fff;border-bottom:1px solid var(--line);}
+  .depth-bar .bk{background:none;border:0;font-size:20px;color:#46505d;cursor:pointer;line-height:1;padding:0;}
+  .depth-bar .dt{font-size:15px;font-weight:800;color:var(--ink);}
+  .depth-bar .dc{font-size:11px;color:var(--sub);margin-left:auto;}
+  .depth-list{flex:1;overflow-y:auto;padding:4px 16px 16px;scrollbar-width:none;}
+  .depth-list::-webkit-scrollbar{display:none;}
+
+  /* C 2분할 */
+  .sentibar{display:flex;height:6px;border-radius:4px;overflow:hidden;margin:2px 0 4px;}
+  .sentibar i{display:block;height:100%;}
+  .sentibar .su{background:var(--up);} .sentibar .sd{background:var(--down);}
+  .sentimeta{display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:10px;}
+  .sentimeta .u{color:var(--up);} .sentimeta .d{color:var(--down);}
+  .cols{display:flex;gap:8px;}
+  .col{flex:1;min-width:0;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;}
+  .col h4{font-size:11.5px;font-weight:800;margin:0 0 4px;}
+  .col.up h4{color:var(--up);} .col.down h4{color:var(--down);}
+  .citem{font-size:12px;color:var(--ink);line-height:1.3;padding:6px 0;border-top:1px solid var(--line);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+  .col h4 + .citem{border-top:0;}
+
+  .hint{margin-top:36px;color:#7e8a99;font-size:12px;line-height:1.7;max-width:820px;}
   .hint code{background:#1b2330;padding:1px 6px;border-radius:5px;color:#aebccd;}
 </style>
 </head>
 <body>
   <h1>관심그룹 팝업 · 이슈 콘텐츠 인터랙션 프로토타입</h1>
   <p class="lede">
-    <b>popup.png</b> 위에 <b>tobe</b>(빈 스크롤 영역)를 올리고, 비어둔 공간에 새 콘텐츠를 채운 5개 안입니다.
-    각 폰의 콘텐츠 영역은 실제로 <b>스크롤·탭·스와이프</b>됩니다. 카드를 눌러보세요.
+    <b>popup.png</b> + <b>tobe</b> 스크롤 영역 위에 새 콘텐츠를 올린 <b>8개 안</b>입니다(카드형 5 · 리스트형 3).
+    각 영역은 실제로 <b>스크롤·탭·스와이프</b>되고, <b>이슈를 클릭하면 실제 현재가 상세 화면으로 이동</b>합니다(상단·하단 뒤로가기로 복귀).
   </p>
 
   <div class="rail">
-    <!-- ===================== 1안 ===================== -->
+    <!-- ===== 1안 ===== -->
     <section class="stage">
       <div class="caption"><span class="num">1안</span>호재·악재·소식 3종 요약</div>
-      <div class="subcap">대표 이슈 3개를 한눈에 · 탭하면 상세 펼침</div>
+      <div class="subcap">대표 이슈 3개 · 탭하면 상세 화면 이동</div>
       <div class="frame"><div class="phone"><div class="viewport">
         <img class="seg" src="assets/tobe_top.png" alt="">
-        <div class="widget" id="w1">
-          <div class="wtitle"><h3>오늘의 이슈</h3><span style="font-size:11px;color:var(--sub)">실시간 · 3건</span></div>
-          <!-- cards injected -->
+        <div class="widget"><div class="wtitle"><h3>오늘의 이슈</h3><span style="font-size:11px;color:var(--sub)">실시간 · 3건</span></div>
+          <div id="w1"></div>
         </div>
         <img class="seg" src="assets/tobe_bottom.png" alt="">
       </div></div></div>
     </section>
 
-    <!-- ===================== 2안 ===================== -->
+    <!-- ===== 2안 ===== -->
     <section class="stage">
       <div class="caption"><span class="num">2안</span>더보기 아코디언</div>
-      <div class="subcap">기본 2건 + ‘더보기’로 추가 이슈 펼침</div>
+      <div class="subcap">기본 2건 + ‘더보기’ · 탭하면 상세 이동</div>
       <div class="frame"><div class="phone"><div class="viewport">
         <img class="seg" src="assets/tobe_top.png" alt="">
-        <div class="widget" id="w2">
-          <div class="wtitle"><h3>이슈 브리핑</h3></div>
+        <div class="widget"><div class="wtitle"><h3>이슈 브리핑</h3></div>
           <div id="w2base"></div>
           <div class="acc-extra" id="w2extra"></div>
           <button class="morebtn" id="w2btn">이슈 3건 더보기 <span class="ic">▾</span></button>
@@ -185,22 +219,18 @@
       </div></div></div>
     </section>
 
-    <!-- ===================== 3안 ===================== -->
+    <!-- ===== 3안 ===== -->
     <section class="stage">
       <div class="caption"><span class="num">3안</span>이슈 카드 넘기기</div>
-      <div class="subcap">카드 탭/화살표로 좌우 전환 · 색으로 성격 구분</div>
+      <div class="subcap">화살표로 전환 · 카드 탭/› 상세 이동</div>
       <div class="frame"><div class="phone"><div class="viewport">
         <img class="seg" src="assets/tobe_top.png" alt="">
-        <div class="widget" id="w3">
-          <div class="wtitle"><h3>이슈 카드</h3><span id="w3count" style="font-size:11px;color:var(--sub)"></span></div>
+        <div class="widget"><div class="wtitle"><h3>이슈 카드</h3><span id="w3count" style="font-size:11px;color:var(--sub)"></span></div>
           <div class="caro">
             <div class="caro-win"><div class="caro-track" id="w3track"></div></div>
             <div class="caro-bar">
               <div class="dots" id="w3dots"></div>
-              <div style="display:flex;gap:6px;">
-                <button class="navbtn" id="w3prev">‹</button>
-                <button class="navbtn" id="w3next">›</button>
-              </div>
+              <div style="display:flex;gap:6px;"><button class="navbtn" id="w3prev">‹</button><button class="navbtn" id="w3next">›</button></div>
             </div>
           </div>
         </div>
@@ -208,21 +238,17 @@
       </div></div></div>
     </section>
 
-    <!-- ===================== 4안 ===================== -->
+    <!-- ===== 4안 ===== -->
     <section class="stage">
       <div class="caption"><span class="num">4안</span>카테고리 탭 + 센티먼트 게이지 <span style="color:#8a96a6;font-weight:600;font-size:11px">(제안)</span></div>
-      <div class="subcap">호재/악재 비중 게이지 + 탭으로 필터</div>
+      <div class="subcap">비중 게이지 + 탭 필터 · 탭하면 상세 이동</div>
       <div class="frame"><div class="phone"><div class="viewport">
         <img class="seg" src="assets/tobe_top.png" alt="">
-        <div class="widget" id="w4">
-          <div class="wtitle"><h3>이슈 센티먼트</h3><span style="font-size:11px;color:var(--up);font-weight:700">호재 우세</span></div>
-          <div class="gauge"><i class="gu" style="width:55%"></i><i class="gd" style="width:30%"></i><i class="gn" style="width:15%"></i></div>
-          <div class="gmeta"><span class="u">호재 55%</span><span class="d">악재 30%</span><span class="n">소식 15%</span></div>
+        <div class="widget"><div class="wtitle"><h3>이슈 센티먼트</h3><span style="font-size:11px;color:var(--ink);font-weight:700">호재·악재 균형</span></div>
+          <div class="gauge"><i class="gu" style="width:38%"></i><i class="gd" style="width:37%"></i><i class="gn" style="width:25%"></i></div>
+          <div class="gmeta"><span class="u">호재 3</span><span class="d">악재 3</span><span class="n">소식 2</span></div>
           <div class="seg-tabs" id="w4tabs">
-            <button data-f="all" class="on">전체</button>
-            <button data-f="up">호재</button>
-            <button data-f="down">악재</button>
-            <button data-f="news">소식</button>
+            <button data-f="all" class="on">전체</button><button data-f="up">호재</button><button data-f="down">악재</button><button data-f="news">소식</button>
           </div>
           <div id="w4list"></div>
         </div>
@@ -230,18 +256,65 @@
       </div></div></div>
     </section>
 
-    <!-- ===================== 5안 ===================== -->
+    <!-- ===== 5안 ===== -->
     <section class="stage">
       <div class="caption"><span class="num">5안</span>AI 요약 + 이슈 타임라인 <span style="color:#8a96a6;font-weight:600;font-size:11px">(제안)</span></div>
-      <div class="subcap">AI 한 줄 요약 + 시간순 이슈 흐름 · 탭 상세</div>
+      <div class="subcap">AI 한 줄 요약 + 시간순 흐름 · 탭하면 상세 이동</div>
       <div class="frame"><div class="phone"><div class="viewport">
         <img class="seg" src="assets/tobe_top.png" alt="">
-        <div class="widget" id="w5">
-          <div class="ai-banner">
-            <div class="t">✨ AI 이슈 요약</div>
-            <div class="s">HBM4 조기 양산 기대로 외국인 매수세가 유입됐으나, 단기 차익실현 매물도 출회 중입니다.</div>
-          </div>
+        <div class="widget">
+          <div class="ai-banner"><div class="t">✨ AI 이슈 요약</div>
+            <div class="s">저평가 매수론이 부각됐으나 외국인 순매도·차익실현 매물로 단기 변동성이 큰 국면입니다.</div></div>
           <div class="tl" id="w5tl"></div>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+
+    <!-- ===== A안 ===== -->
+    <section class="stage">
+      <div class="caption"><span class="num alt">A안</span>리스트 + 펼치기(아코디언)</div>
+      <div class="subcap">3건 노출 · 더보기로 확장 · 탭하면 상세 이동</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget"><div class="whead"><h3>종목 이슈</h3><span style="font-size:11px;color:var(--sub)">8건</span></div>
+          <div class="list"><div id="aBase"></div><div class="acc" id="aAcc"></div></div>
+          <button class="morebtn" id="aBtn" style="margin-top:8px;">이슈 5건 더보기 <span class="ic">▾</span></button>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+      </div></div></div>
+    </section>
+
+    <!-- ===== B안 ===== -->
+    <section class="stage">
+      <div class="caption"><span class="num alt">B안</span>리스트 + 2depth</div>
+      <div class="subcap">3건 노출 · 전체보기 → 팝업 내 2depth · 탭하면 상세 이동</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget"><div class="whead"><h3>종목 이슈</h3><button class="act" id="bOpen">전체보기 ›</button></div>
+          <div class="list" id="bList"></div>
+        </div>
+        <img class="seg" src="assets/tobe_bottom.png" alt="">
+        <div class="depth" id="bDepth">
+          <div class="depth-bar"><button class="bk" id="bBack">‹</button><span class="dt">종목 이슈</span><span class="dc">전체 8건</span></div>
+          <div class="depth-list" id="bDeep"></div>
+        </div>
+      </div></div></div>
+    </section>
+
+    <!-- ===== C안 ===== -->
+    <section class="stage">
+      <div class="caption"><span class="num sug">C안</span>호재·악재 2분할 한눈 보기</div>
+      <div class="subcap">2열로 6건 동시 노출 · 탭하면 상세 이동</div>
+      <div class="frame"><div class="phone"><div class="viewport">
+        <img class="seg" src="assets/tobe_top.png" alt="">
+        <div class="widget"><div class="whead"><h3>종목 이슈</h3><span style="font-size:11px;color:var(--sub)">오늘 8건</span></div>
+          <div class="sentibar"><i class="su" style="width:50%"></i><i class="sd" style="width:50%"></i></div>
+          <div class="sentimeta"><span class="u">호재 3</span><span class="d">악재 3</span></div>
+          <div class="cols">
+            <div class="col up"><h4>● 호재</h4><div id="cUp"></div></div>
+            <div class="col down"><h4>● 악재</h4><div id="cDown"></div></div>
+          </div>
         </div>
         <img class="seg" src="assets/tobe_bottom.png" alt="">
       </div></div></div>
@@ -249,95 +322,89 @@
   </div>
 
   <p class="hint">
-    배경 <code>popup.png</code> 위에 스크롤 영역(<code>left 197 / top 245 / 343×706</code>)을 정렬하고,
-    상단 시세(<code>tobe_top</code>)와 차트·뉴스(<code>tobe_bottom</code>) 사이에 새 콘텐츠를 끼워 넣었습니다.
-    아코디언/탭 확장 시 아래 차트·뉴스가 자연스럽게 밀립니다.
+    배경 <code>popup.png</code> 위 스크롤 영역(<code>left 197 / top 245 / 343×706</code>)에 콘텐츠를 끼우고,
+    이슈 클릭 시 <code>scr_*.jpg</code>(실제 현재가 화면)으로 전체 전환합니다. 상세 화면의 상단/하단 뒤로가기 영역을 누르면 이전으로 복귀합니다.
   </p>
 
 <script>
 /* ---------- 공통 데이터 ---------- */
 const ISSUES = [
-  {k:'up',  tag:'호재', h:'엔비디아, HBM4 조기 양산 요청', m:'6시간 전 · 한국경제',
-    d:'엔비디아가 차세대 AI 가속기용 HBM4 공급 일정을 앞당겨 달라고 요청. SK하이닉스 선점 효과 부각.'},
-  {k:'down',tag:'악재', h:'메모리 현물가 단기 조정…차익실현 매물', m:'3시간 전 · 전자신문',
-    d:'급등 후 D램 현물가가 소폭 되돌림. 단기 과열 부담에 기관 중심 차익 실현 물량 출회.'},
-  {k:'news',tag:'소식', h:'3분기 실적발표 D-12, 컨센서스 영업익 9.2조', m:'9시간 전 · 공시',
-    d:'시장 컨센서스 영업이익 9.2조원. HBM 비중 확대에 따른 믹스 개선 폭이 관전 포인트.'},
-  {k:'up',  tag:'호재', h:'외국인 5거래일 연속 순매수 · 2,400억 유입', m:'1시간 전 · 인포맥스',
-    d:'외국인이 5거래일 연속 순매수하며 누적 2,400억원 유입. AI 반도체 비중 확대 흐름.'},
-  {k:'down',tag:'악재', h:'환율 변동성 확대에 원가 마진 압박 우려', m:'7시간 전 · 머니투데이',
-    d:'환율 급등락으로 원소재 조달 비용 변동성 확대. 일부 증권사 마진 추정치 하향.'},
-  {k:'news',tag:'소식', h:'신규 후공정 라인 증설 투자 발표 임박', m:'12시간 전 · 업계',
-    d:'HBM 패키징 캐파 확대를 위한 신규 후공정 라인 증설 검토. 이르면 이번 주 공시 전망.'},
+  {k:'up',  tag:'호재', s:'AI 반도체 저평가', h:'젠슨 황 "AI 관련주 주가 매우 싸다"', m:'8시간 전 · 한국경제', time:'8시간 전', screen:'assets/scr_news.jpg',
+    d:'엔비디아 CEO가 AI 반도체주의 저평가를 언급하며 투자심리가 일부 회복되는 모습입니다.'},
+  {k:'down',tag:'악재', s:'외국인 순매도', h:'외국인 5거래일 연속 순매도', m:'1시간 전 · 인포맥스', time:'1시간 전', screen:'assets/scr_invest.jpg',
+    d:'외국인이 최근 5거래일 연속 매도 우위를 보이며 수급 부담이 이어지고 있습니다.'},
+  {k:'news',tag:'소식', s:'주요 공시', h:'분기보고서·자기주식 처분 공시', m:'어제 · 공시', time:'어제', screen:'assets/scr_disc.jpg',
+    d:'분기보고서 제출과 자기주식 처분 결정 등 주요 공시가 업데이트됐습니다.'},
+  {k:'up',  tag:'호재', s:'HBM4 수혜', h:'엔비디아, HBM4 조기 양산 요청', m:'6시간 전 · 한국경제', time:'6시간 전', screen:'assets/scr_news.jpg',
+    d:'차세대 AI 가속기용 HBM4 공급 일정을 앞당겨 달라는 요청으로 선점 효과가 부각됐습니다.'},
+  {k:'down',tag:'악재', s:'주가 단기 급락', h:'주가 단기 급락, 차익실현 매물', m:'3시간 전 · 전자신문', time:'3시간 전', screen:'assets/scr_daily.jpg',
+    d:'급등 이후 차익실현 매물이 출회되며 단기 변동성이 크게 확대되고 있습니다.'},
+  {k:'down',tag:'악재', s:'현물가 조정', h:'메모리 현물가 단기 조정', m:'7시간 전 · 머니투데이', time:'7시간 전', screen:'assets/scr_daily.jpg',
+    d:'급등하던 D램 현물가가 소폭 되돌림. 단기 과열 부담이 반영되고 있습니다.'},
+  {k:'up',  tag:'호재', s:'단기 매수 유입', h:'외국인 단타성 매수 일부 유입', m:'9시간 전 · 업계', time:'9시간 전', screen:'assets/scr_invest.jpg',
+    d:'일부 외국인의 단기 매수세 유입이 관측되며 낙폭 과대 인식이 나옵니다.'},
+  {k:'news',tag:'소식', s:'증설 검토', h:'신규 후공정 라인 증설 검토', m:'12시간 전 · 업계', time:'어제', screen:'assets/scr_disc.jpg',
+    d:'HBM 패키징 캐파 확대를 위한 신규 후공정 라인 증설을 검토 중입니다.'},
 ];
-const KIND = {up:'up',down:'down',news:'news'};
+
+/* ---------- 공통: 현재가 화면 랜딩 ---------- */
+function openScreen(phone, src){
+  if(phone.querySelector('.landing')) return;
+  const l=document.createElement('div'); l.className='landing'; l.style.transform='translateX(100%)';
+  l.innerHTML=`<img src="${src}" alt="현재가 상세 화면"><div class="back-hot top"></div><div class="back-hot bottom"></div>`;
+  const close=()=>{l.style.transform='translateX(100%)';l.addEventListener('transitionend',()=>l.remove(),{once:true});};
+  l.querySelectorAll('.back-hot').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();close();}));
+  phone.appendChild(l);
+  requestAnimationFrame(()=>l.style.transform='translateX(0)');
+}
+function nav(el,it){ el.addEventListener('click',()=>openScreen(el.closest('.phone'),it.screen)); }
+
+/* ---------- 카드 빌더 ---------- */
+function cardEl(it){
+  const c=document.createElement('div'); c.className='card';
+  c.innerHTML=`<span class="baricon ${it.k}"></span>
+    <div class="body"><div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
+    <div class="h">${it.h}</div><div class="meta">${it.m}</div></div><span class="chev">›</span>`;
+  nav(c,it); return c;
+}
+function rowEl(it){
+  const r=document.createElement('div'); r.className='row';
+  r.innerHTML=`<span class="rdot ${it.k}"></span><span class="rtitle">${it.h}</span><span class="rtime">${it.time}</span>`;
+  nav(r,it); return r;
+}
 
 /* ---------- 1안 ---------- */
 (function(){
-  const wrap = document.getElementById('w1');
-  ISSUES.slice(0,3).forEach((it)=>{
-    const c = document.createElement('div');
-    c.className = 'card';
-    c.innerHTML = `
-      <span class="baricon ${it.k}"></span>
-      <div class="body">
-        <div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
-        <div class="h">${it.h}</div>
-        <div class="meta">${it.m}</div>
-        <div class="detail">${it.d}</div>
-      </div>
-      <span class="chev">▾</span>`;
-    c.onclick = ()=> c.classList.toggle('open');
-    wrap.appendChild(c);
-  });
+  const wrap=document.getElementById('w1');
+  ISSUES.slice(0,3).forEach(it=>wrap.appendChild(cardEl(it)));
 })();
 
 /* ---------- 2안 ---------- */
 (function(){
-  function make(it){
-    const c=document.createElement('div');
-    c.className='card';
-    c.innerHTML=`<span class="baricon ${it.k}"></span>
-      <div class="body"><div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
-      <div class="h">${it.h}</div><div class="meta">${it.m}</div>
-      <div class="detail">${it.d}</div></div><span class="chev">▾</span>`;
-    c.onclick=()=>c.classList.toggle('open');
-    return c;
-  }
   const base=document.getElementById('w2base'), extra=document.getElementById('w2extra');
-  ISSUES.slice(0,2).forEach(it=>base.appendChild(make(it)));
-  ISSUES.slice(2,5).forEach(it=>extra.appendChild(make(it)));
+  ISSUES.slice(0,2).forEach(it=>base.appendChild(cardEl(it)));
+  ISSUES.slice(2,5).forEach(it=>extra.appendChild(cardEl(it)));
   const btn=document.getElementById('w2btn');
-  btn.onclick=()=>{
-    const open=extra.classList.toggle('open');
-    btn.classList.toggle('open',open);
-    btn.firstChild.textContent = open ? '접기 ' : '이슈 3건 더보기 ';
-  };
+  btn.onclick=()=>{const open=extra.classList.toggle('open');btn.classList.toggle('open',open);
+    btn.firstChild.textContent = open ? '접기 ' : '이슈 3건 더보기 ';};
 })();
 
 /* ---------- 3안 ---------- */
 (function(){
   const cards=ISSUES.slice(0,4);
-  const track=document.getElementById('w3track');
-  const dots=document.getElementById('w3dots');
-  const count=document.getElementById('w3count');
+  const track=document.getElementById('w3track'),dots=document.getElementById('w3dots'),count=document.getElementById('w3count');
   let idx=0;
   cards.forEach((it,i)=>{
-    const s=document.createElement('div');
-    s.className='slide '+it.k;
-    s.innerHTML=`<div><div class="kind">${it.tag} 이슈</div>
-      <div class="st">${it.h}</div><div class="sd">${it.d}</div></div>
-      <div class="sm">${it.m}</div>`;
-    s.onclick=()=>go(idx+1);
+    const s=document.createElement('div'); s.className='slide '+it.k;
+    s.innerHTML=`<div><div class="stop"><div class="kind">${it.tag}</div><button class="go" aria-label="상세 보기">›</button></div>
+      <div class="st">${it.h}</div><div class="sd">${it.d}</div></div><div class="sm">${it.m}</div>`;
+    s.addEventListener('click',()=>go(idx+1));
+    s.querySelector('.go').addEventListener('click',e=>{e.stopPropagation();openScreen(s.closest('.phone'),it.screen);});
     track.appendChild(s);
     const d=document.createElement('span'); d.className='dot'+(i===0?' on':''); dots.appendChild(d);
   });
-  function go(n){
-    idx=(n+cards.length)%cards.length;
-    track.style.transform=`translateX(${-idx*100}%)`;
-    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
-    count.textContent=`${idx+1} / ${cards.length}`;
-  }
+  function go(n){idx=(n+cards.length)%cards.length;track.style.transform=`translateX(${-idx*100}%)`;
+    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===idx));count.textContent=`${idx+1} / ${cards.length}`;}
   document.getElementById('w3prev').onclick=()=>go(idx-1);
   document.getElementById('w3next').onclick=()=>go(idx+1);
   go(0);
@@ -346,42 +413,50 @@ const KIND = {up:'up',down:'down',news:'news'};
 /* ---------- 4안 ---------- */
 (function(){
   const list=document.getElementById('w4list');
-  function render(f){
-    list.innerHTML='';
-    ISSUES.filter(it=>f==='all'||it.k===f).forEach(it=>{
-      const c=document.createElement('div');
-      c.className='card';
-      c.innerHTML=`<span class="baricon ${it.k}"></span>
-        <div class="body"><div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
-        <div class="h">${it.h}</div><div class="meta">${it.m}</div>
-        <div class="detail">${it.d}</div></div><span class="chev">▾</span>`;
-      c.onclick=()=>c.classList.toggle('open');
-      list.appendChild(c);
-    });
-  }
+  function render(f){list.innerHTML='';ISSUES.filter(it=>f==='all'||it.k===f).forEach(it=>list.appendChild(cardEl(it)));}
   const tabs=document.getElementById('w4tabs');
-  tabs.querySelectorAll('button').forEach(b=>{
-    b.onclick=()=>{
-      tabs.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on'); render(b.dataset.f);
-    };
-  });
+  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    tabs.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');render(b.dataset.f);});
   render('all');
 })();
 
 /* ---------- 5안 ---------- */
 (function(){
   const tl=document.getElementById('w5tl');
-  const order=[ISSUES[3],ISSUES[1],ISSUES[0],ISSUES[2],ISSUES[4]];
+  const order=[ISSUES[3],ISSUES[1],ISSUES[0],ISSUES[4],ISSUES[2]];
   order.forEach(it=>{
-    const el=document.createElement('div');
-    el.className='tl-item '+it.k;
-    el.innerHTML=`<span class="node"></span>
-      <div class="tt">${it.h}</div><div class="tm">${it.m}</div>
-      <div class="td">${it.d}</div>`;
-    el.onclick=()=>el.classList.toggle('open');
-    tl.appendChild(el);
+    const el=document.createElement('div'); el.className='tl-item '+it.k;
+    el.innerHTML=`<span class="node"></span><div class="tt">${it.h}</div><div class="tm">${it.m}</div>`;
+    nav(el,it); tl.appendChild(el);
   });
+})();
+
+/* ---------- A안 ---------- */
+(function(){
+  const b=document.getElementById('aBase'), acc=document.getElementById('aAcc');
+  ISSUES.slice(0,3).forEach(it=>b.appendChild(rowEl(it)));
+  ISSUES.slice(3).forEach(it=>acc.appendChild(rowEl(it)));
+  const btn=document.getElementById('aBtn');
+  btn.onclick=()=>{const open=acc.classList.toggle('open');btn.classList.toggle('open',open);
+    btn.firstChild.textContent = open ? '접기 ' : `이슈 ${ISSUES.length-3}건 더보기 `;};
+})();
+
+/* ---------- B안 ---------- */
+(function(){
+  const list=document.getElementById('bList'), deep=document.getElementById('bDeep');
+  ISSUES.slice(0,3).forEach(it=>list.appendChild(rowEl(it)));
+  ISSUES.forEach(it=>deep.appendChild(rowEl(it)));
+  const depth=document.getElementById('bDepth');
+  document.getElementById('bOpen').onclick=()=>depth.classList.add('open');
+  document.getElementById('bBack').onclick=()=>depth.classList.remove('open');
+})();
+
+/* ---------- C안 ---------- */
+(function(){
+  const cItem=it=>{const d=document.createElement('div');d.className='citem';d.textContent=it.s;nav(d,it);return d;};
+  const up=document.getElementById('cUp'), down=document.getElementById('cDown');
+  ISSUES.filter(i=>i.k==='up').slice(0,3).forEach(it=>up.appendChild(cItem(it)));
+  ISSUES.filter(i=>i.k==='down').slice(0,3).forEach(it=>down.appendChild(cItem(it)));
 })();
 </script>
 </body>
