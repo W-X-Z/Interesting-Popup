@@ -68,24 +68,16 @@
   .slide .body{font-size:13.5px;line-height:1.6;opacity:.96;margin-top:10px;flex:1;}
   .slide .time{font-size:11px;opacity:.78;margin-top:14px;}
 
-  /* ---- 상세 화면 (스크롤 영역 전체를 덮는 별도 화면) ---- */
-  .detail{
-    position:absolute;inset:0;background:#f8f8f8;padding:14px 16px 20px;
-    overflow-y:auto;z-index:6;animation:slideIn .24s ease;
+  /* ---- 현재가 상세 화면 랜딩 (폰 전체 전환) ---- */
+  .landing{
+    position:absolute;inset:0;z-index:50;background:#fff;
+    transition:transform .26s cubic-bezier(.4,0,.2,1);
   }
-  .detail::-webkit-scrollbar{display:none;}
-  @keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
-  .detail .back{background:none;border:0;color:#46505d;font-size:14px;font-weight:700;
-    cursor:pointer;padding:4px 0 14px;}
-  .dcard{background:#fff;border:1px solid #eef0f3;border-radius:16px;padding:18px;}
-  .dbadge{display:inline-block;font-size:12px;font-weight:800;padding:4px 11px;border-radius:999px;}
-  .dbadge.up{color:var(--up);background:rgba(240,68,82,.12);}
-  .dbadge.down{color:var(--down);background:rgba(52,120,246,.12);}
-  .dbadge.news{color:#b8770a;background:rgba(245,158,11,.14);}
-  .dcard h3{font-size:19px;font-weight:800;color:var(--ink);margin:14px 0 0;line-height:1.4;letter-spacing:-.3px;}
-  .dtime{font-size:11.5px;color:var(--sub);margin-top:8px;}
-  .dcard p{font-size:14px;color:#3d4754;line-height:1.7;margin:16px 0 0;}
-  .dmore{display:inline-block;margin-top:18px;font-size:13px;font-weight:700;color:var(--down);cursor:pointer;}
+  .landing img{width:100%;height:100%;display:block;object-fit:cover;object-position:top;}
+  .back-hot{position:absolute;cursor:pointer;border-radius:8px;transition:background .12s;}
+  .back-hot.top{left:0;top:46px;width:130px;height:78px;}
+  .back-hot.bottom{left:300px;top:1104px;width:240px;height:66px;}
+  .back-hot:active{background:rgba(0,0,0,.10);}
 
   .dots{display:flex;gap:7px;justify-content:center;margin-top:14px;}
   .dot{width:7px;height:7px;border-radius:50%;background:#d6dbe2;transition:.22s;cursor:pointer;}
@@ -137,13 +129,17 @@
 <script>
 const ISSUES = [
   {k:'up',  tag:'호재', title:'엔비디아, HBM4 조기 양산 요청',
-    body:'차세대 AI 가속기용 HBM4 공급 일정을 앞당겨 달라는 요청이 들어오며 선점 효과가 부각됐습니다.', time:'6시간 전'},
+    body:'차세대 AI 가속기용 HBM4 공급 일정을 앞당겨 달라는 요청이 들어오며 선점 효과가 부각됐습니다.', time:'6시간 전',
+    screen:'assets/scr_news.jpg'},
   {k:'down',tag:'악재', title:'메모리 현물가 단기 조정',
-    body:'급등 후 D램 현물가가 소폭 되돌림. 단기 과열 부담에 차익실현 매물이 출회되고 있습니다.', time:'3시간 전'},
+    body:'급등 후 D램 현물가가 소폭 되돌림. 단기 과열 부담에 차익실현 매물이 출회되고 있습니다.', time:'3시간 전',
+    screen:'assets/scr_invest.jpg'},
   {k:'news',tag:'소식', title:'3분기 실적발표 D-12',
-    body:'시장 컨센서스 영업이익 9.2조원. HBM 비중 확대에 따른 믹스 개선 폭이 관전 포인트입니다.', time:'9시간 전'},
+    body:'시장 컨센서스 영업이익 9.2조원. HBM 비중 확대에 따른 믹스 개선 폭이 관전 포인트입니다.', time:'9시간 전',
+    screen:'assets/scr_disc.jpg'},
   {k:'up',  tag:'호재', title:'외국인 5거래일 연속 순매수',
-    body:'외국인이 누적 2,400억원을 순매수하며 AI 반도체 비중을 빠르게 늘리고 있습니다.', time:'1시간 전'},
+    body:'외국인이 누적 2,400억원을 순매수하며 AI 반도체 비중을 빠르게 늘리고 있습니다.', time:'1시간 전',
+    screen:'assets/scr_invest.jpg'},
 ];
 
 const TRANSITION='transform .34s cubic-bezier(.4,0,.2,1)';
@@ -164,7 +160,7 @@ function buildSlide(it){
     <div class="body">${it.body}</div>
     <div class="time">${it.time}</div>`;
   s.addEventListener('click',()=>next());
-  s.querySelector('.go').addEventListener('click',(e)=>{e.stopPropagation();openDetail(it);});
+  s.querySelector('.go').addEventListener('click',(e)=>{e.stopPropagation();openScreen(it.screen);});
   return s;
 }
 
@@ -211,24 +207,24 @@ function jump(i){           // 도트 직접 선택
   setDots(i);
 }
 
-/* ---------- 상세 화면 랜딩 ---------- */
+/* ---------- 현재가 상세 화면 랜딩 ---------- */
 const caro=document.querySelector('.caro');
-const viewport=document.querySelector('.viewport');
-function openDetail(it){
-  if(document.getElementById('detail')) return;
-  const d=document.createElement('div');
-  d.className='detail';d.id='detail';
-  d.innerHTML=`<button class="back">‹ 뒤로</button>
-    <div class="dcard">
-      <span class="dbadge ${it.k}">${it.tag}</span>
-      <h3>${it.title}</h3>
-      <div class="dtime">${it.time} · SK하이닉스 이슈</div>
-      <p>${it.body} 실제 화면에서는 관련 지표·원문 기사·종목 영향도 등 상세 내용이 이어집니다.</p>
-      <a class="dmore">관련 기사 모두 보기 ›</a>
-    </div>`;
-  d.querySelector('.back').addEventListener('click',()=>d.remove());
-  viewport.appendChild(d);
-  viewport.scrollTop=0;
+const phone=document.querySelector('.phone');
+function openScreen(src){
+  if(document.getElementById('landing')) return;
+  const l=document.createElement('div');
+  l.className='landing';l.id='landing';
+  l.style.transform='translateX(100%)';
+  l.innerHTML=`<img src="${src}" alt="현재가 상세 화면">
+    <div class="back-hot top" title="뒤로가기"></div>
+    <div class="back-hot bottom" title="뒤로가기"></div>`;
+  const close=()=>{
+    l.style.transform='translateX(100%)';
+    l.addEventListener('transitionend',()=>l.remove(),{once:true});
+  };
+  l.querySelectorAll('.back-hot').forEach(b=>b.addEventListener('click',close));
+  phone.appendChild(l);
+  requestAnimationFrame(()=>{l.style.transform='translateX(0)';});
 }
 
 /* ---------- 온보딩(최초 1회) ---------- */
