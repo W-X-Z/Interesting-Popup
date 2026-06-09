@@ -21,7 +21,7 @@
   .group{flex:0 0 auto;}
   .gcap{font-size:15px;font-weight:800;margin:0 0 2px;color:#eaf0f7;letter-spacing:-.3px;}
   .gcap .num{display:inline-block;color:#fff;border-radius:7px;padding:2px 9px;margin-right:8px;font-size:13px;}
-  .gcap .num.n1{background:#2b6cff;} .gcap .num.n3{background:#2b6cff;} .gcap .num.n5{background:#7a52ff;}
+  .gcap .num.n1{background:#2b6cff;} .gcap .num.n3{background:#2b6cff;} .gcap .num.n5{background:#7a52ff;} .gcap .num.n6{background:#2bb0a3;}
   .gcap .num.na{background:#16a34a;} .gcap .num.nc{background:#e0683a;}
   .gsub{font-size:12px;color:#8a96a6;margin:0 0 14px;}
   .pair{display:flex;gap:18px;}
@@ -80,8 +80,10 @@
   .caro{position:relative;}
   .caro-win{overflow:hidden;border-radius:18px;}
   .caro-track{display:flex;transition:transform .32s cubic-bezier(.4,0,.2,1);}
-  .slide{flex:0 0 100%;padding:17px;border-radius:18px;color:#fff;min-height:172px;
+  .slide{flex:0 0 100%;min-width:0;padding:17px;border-radius:18px;color:#fff;min-height:172px;
     display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;}
+  .slide>div{min-width:0;}
+  .slide .st.t-ellip{display:block;}
   .slide.up{background:linear-gradient(135deg,#ff5a6a,#e0303f);}
   .slide.down{background:linear-gradient(135deg,#5a93ff,#2f63e0);}
   .slide.news{background:linear-gradient(135deg,#ffb43d,#f0890c);}
@@ -197,7 +199,7 @@
 <body>
   <h1>관심그룹 팝업 · 이슈 콘텐츠 v2 <span style="font-size:13px;color:#8a96a6;font-weight:600">(팀 피드백 반영)</span></h1>
   <p class="lede">
-    피드백 반영: <b>1안·5안 통합</b> → <b>5안</b> 펼치기 바에 <b>호재·악재·소식 시각화</b> 적용, 빈 자리는 <b>3안(카드 넘기기)</b>로 대체. <b>A안</b> 범례+더보기, <b>C안</b> 색상 바+키워드 칩.
+    총 <b>5개 안</b>: <b>3안</b> 카드 넘기기, <b>5안</b> AI요약+시각화 펼치기, <b>6안</b> AI요약+텍스트 펼치기(시각화 없음), <b>A안</b> 리스트+범례, <b>C안</b> 색상 바+키워드 칩.
     각 안마다 <span class="k">깔끔한 제목</span> · <span class="k">긴 제목</span>(말줄임표/멀티라인 토글) 두 케이스를 나란히 제공합니다. 이슈 탭 시 현재가 화면으로 이동합니다.
   </p>
 
@@ -313,6 +315,25 @@ function render5(w, mode, state){
   });
 }
 
+/* ---------- 6안: AI 요약 + 텍스트 펼치기 → 타임라인 ---------- */
+function render6(w, mode, state){
+  const tc=titleClass(mode);
+  const order=[ISSUES[0],ISSUES[3],ISSUES[4],ISSUES[1],ISSUES[6]];
+  w.innerHTML=`
+    <div class="ai-banner"><div class="t">✨ AI 이슈 요약</div>
+      <div class="s">저평가 매수론이 부각됐으나 외국인 순매도·차익실현 매물로 단기 변동성이 큰 국면입니다.</div></div>
+    <button class="minbtn ${state.open?'open':''}" style="margin-top:12px;"><span class="ctxt">${state.open?'접기':'펼치기'}</span> <span class="ic">▾</span></button>
+    <div class="expandable ${state.open?'open':''}" style="margin-top:12px;"><div class="tl"></div></div>`;
+  const btn=w.querySelector('.minbtn'), exp=w.querySelector('.expandable'), tl=w.querySelector('.tl');
+  btn.addEventListener('click',()=>{state.open=!state.open;btn.classList.toggle('open',state.open);exp.classList.toggle('open',state.open);
+    btn.querySelector('.ctxt').textContent=state.open?'접기':'펼치기';});
+  order.forEach(it=>{
+    const el=document.createElement('div'); el.className='tl-item '+it.k;
+    el.innerHTML=`<span class="node"></span><div class="tt ${tc}">${titleField(it,mode)}</div><div class="tm">${it.m}</div>`;
+    nav(el,it); tl.appendChild(el);
+  });
+}
+
 /* ---------- A안: 컴팩트 범례 + 펼치기 ---------- */
 function renderA(w, mode, state){
   const tc=titleClass(mode);
@@ -320,7 +341,6 @@ function renderA(w, mode, state){
     <div class="wtitle"><h3>종목 이슈</h3><span class="sub">오늘 ${ISSUES.length}건</span></div>
     <div class="legend-min">
       <span class="lg up"><i></i>호재</span><span class="lg down"><i></i>악재</span><span class="lg news"><i></i>소식</span>
-      <span class="note">색으로 성격 구분</span>
     </div>
     <div class="list"><div class="base"></div><div class="acc ${state.open?'open':''}"></div></div>
     <button class="minbtn ${state.open?'open':''}">${state.open?'접기':`이슈 ${ISSUES.length-3}건 더보기`} <span class="ic">▾</span></button>`;
@@ -355,10 +375,11 @@ function renderC(w, mode){
 }
 
 /* ---------- 빌드 ---------- */
-const RENDERERS={3:render3,5:render5,A:renderA,C:renderC};
+const RENDERERS={3:render3,5:render5,6:render6,A:renderA,C:renderC};
 const GROUPS=[
   {key:'3', cls:'n3', title:'이슈 카드 넘기기', sub:'클릭·화살표로 옆으로 넘기는 카드형 · › 상세 이동'},
-  {key:'5', cls:'n5', title:'AI 요약 + 타임라인', sub:'요약 바(호재·악재·소식 시각화) 펼치기 → 타임라인'},
+  {key:'5', cls:'n5', title:'AI 요약 + 타임라인 (시각화)', sub:'호재·악재·소식 시각화 바로 펼치기 → 타임라인'},
+  {key:'6', cls:'n6', title:'AI 요약 + 타임라인 (텍스트)', sub:'시각화 없이 ‘펼치기’ 텍스트만 → 타임라인'},
   {key:'A', cls:'na', title:'리스트 + 색상 범례', sub:'컴팩트 범례 · 3건 노출 후 더보기로 펼침'},
   {key:'C', cls:'nc', title:'키워드 칩', sub:'색상 바·범례 + 키워드 칩 연속 배치'},
 ];
