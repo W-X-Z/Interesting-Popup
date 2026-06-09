@@ -185,12 +185,13 @@
   .sentimeta .u{color:var(--up);} .sentimeta .d{color:var(--down);} .sentimeta .n{color:#b8770a;}
 
   /* ---- 5안 요약 바(펼치기) ---- */
-  .sumbar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;cursor:pointer;margin-top:12px;}
-  .sumbar .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
-  .sumbar .top .lb{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.3px;}
-  .sumbar .top .chev{font-size:13px;font-weight:700;color:var(--sub);display:inline-flex;align-items:center;gap:3px;}
-  .sumbar .top .chev .ic{display:inline-block;transition:.25s;}
-  .sumbar.open .top .chev .ic{transform:rotate(180deg);}
+  .sumbar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 15px;cursor:pointer;margin-top:12px;}
+  .sumbar .sbrow{display:flex;align-items:center;justify-content:space-between;margin-top:9px;}
+  .sumbar .scount{font-size:13px;font-weight:700;color:var(--sub);}
+  .sumbar .scount .u{color:var(--up);} .sumbar .scount .d{color:var(--down);} .sumbar .scount .n{color:#b8770a;}
+  .sumbar .chev{font-size:13px;font-weight:700;color:var(--sub);display:inline-flex;align-items:center;gap:3px;}
+  .sumbar .chev .ic{display:inline-block;transition:.25s;}
+  .sumbar.open .chev .ic{transform:rotate(180deg);}
 
   .hint{margin-top:34px;color:#7e8a99;font-size:12px;line-height:1.7;max-width:860px;}
   .hint code{background:#1b2330;padding:1px 6px;border-radius:5px;color:#aebccd;}
@@ -299,9 +300,11 @@ function render5(w, mode, state){
     <div class="ai-banner"><div class="t">✨ AI 이슈 요약</div>
       <div class="s">저평가 매수론이 부각됐으나 외국인 순매도·차익실현 매물로 단기 변동성이 큰 국면입니다.</div></div>
     <div class="sumbar ${state.open?'open':''}">
-      <div class="top"><span class="lb">오늘 이슈 ${tot}건</span><span class="chev"><span class="ctxt">${state.open?'접기':'펼치기'}</span> <span class="ic">▾</span></span></div>
       <div class="sentibar"><i class="su" style="width:${up/tot*100}%"></i><i class="sd" style="width:${dn/tot*100}%"></i><i class="sn" style="width:${nw/tot*100}%"></i></div>
-      <div class="sentimeta spread"><span class="u">호재 ${up}</span><span class="d">악재 ${dn}</span><span class="n">소식 ${nw}</span></div>
+      <div class="sbrow">
+        <span class="scount"><b class="u">호재 ${up}</b> · <b class="d">악재 ${dn}</b> · <b class="n">소식 ${nw}</b></span>
+        <span class="chev"><span class="ctxt">${state.open?'접기':'펼치기'}</span> <span class="ic">▾</span></span>
+      </div>
     </div>
     <div class="expandable ${state.open?'open':''}" style="margin-top:12px;"><div class="tl"></div></div>`;
   const bar=w.querySelector('.sumbar'), exp=w.querySelector('.expandable'), tl=w.querySelector('.tl');
