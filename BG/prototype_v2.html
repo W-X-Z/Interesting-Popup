@@ -165,7 +165,7 @@
   .minbtn.open .ic{transform:rotate(180deg);}
 
   /* ---- 컴팩트 범례 ---- */
-  .legend-min{display:flex;align-items:center;flex-wrap:wrap;gap:13px;font-size:13.5px;font-weight:700;color:var(--ink);margin:2px 2px 12px;}
+  .legend-min{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:13px;font-size:13.5px;font-weight:700;color:var(--ink);margin:2px 2px 12px;}
   .legend-min .lg{display:inline-flex;align-items:center;gap:6px;}
   .legend-min .lg i{width:9px;height:9px;border-radius:50%;display:inline-block;}
   .legend-min .lg.up i{background:var(--up);} .legend-min .lg.down i{background:var(--down);} .legend-min .lg.news i{background:var(--news);}
@@ -351,8 +351,10 @@ function renderA(w, mode, state){
     r.innerHTML=`<span class="rdot ${it.k}"></span><span class="rtitle ${tc}">${titleField(it,mode)}</span><span class="rtime">${it.time}</span>`;
     nav(r,it); return r;
   }
-  ISSUES.slice(0,3).forEach(it=>base.appendChild(rowEl(it)));
-  ISSUES.slice(3).forEach(it=>acc.appendChild(rowEl(it)));
+  const parseH=t=>{const m=/(\d+)\s*시간/.exec(t); if(m) return +m[1]; if(t.includes('어제')) return 24; return 999;};
+  const sorted=[...ISSUES].sort((a,b)=>parseH(a.time)-parseH(b.time));
+  sorted.slice(0,3).forEach(it=>base.appendChild(rowEl(it)));
+  sorted.slice(3).forEach(it=>acc.appendChild(rowEl(it)));
   btn.addEventListener('click',()=>{state.open=!state.open;acc.classList.toggle('open',state.open);btn.classList.toggle('open',state.open);
     btn.firstChild.textContent=`${state.open?'접기':`이슈 ${ISSUES.length-3}건 더보기`} `;});
 }
