@@ -179,7 +179,16 @@
   .sentibar i{display:block;height:100%;}
   .sentibar .su{background:var(--up);} .sentibar .sd{background:var(--down);} .sentibar .sn{background:var(--news);}
   .sentimeta{display:flex;gap:14px;font-size:13.5px;font-weight:700;margin-bottom:14px;}
+  .sentimeta.spread{justify-content:space-between;gap:0;margin-bottom:0;}
   .sentimeta .u{color:var(--up);} .sentimeta .d{color:var(--down);} .sentimeta .n{color:#b8770a;}
+
+  /* ---- 5안 요약 바(펼치기) ---- */
+  .sumbar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;cursor:pointer;margin-top:12px;}
+  .sumbar .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+  .sumbar .top .lb{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.3px;}
+  .sumbar .top .chev{font-size:13px;font-weight:700;color:var(--sub);display:inline-flex;align-items:center;gap:3px;}
+  .sumbar .top .chev .ic{display:inline-block;transition:.25s;}
+  .sumbar.open .top .chev .ic{transform:rotate(180deg);}
 
   .hint{margin-top:34px;color:#7e8a99;font-size:12px;line-height:1.7;max-width:860px;}
   .hint code{background:#1b2330;padding:1px 6px;border-radius:5px;color:#aebccd;}
@@ -188,7 +197,7 @@
 <body>
   <h1>관심그룹 팝업 · 이슈 콘텐츠 v2 <span style="font-size:13px;color:#8a96a6;font-weight:600">(팀 피드백 반영)</span></h1>
   <p class="lede">
-    피드백 반영: <b>1안</b> 요약 → <b>이슈 리스트</b> 펼침, <b>5안</b> 더보기 UI <b>컴팩트화</b>, <b>A안</b> <b>펼치기 추가 + 범례 슬림화</b>, <b>C안</b> <b>색상 바·범례 + 키워드 칩 연속 배치</b>.
+    피드백 반영: <b>1안·5안 통합</b> → <b>5안</b> 펼치기 바에 <b>호재·악재·소식 시각화</b> 적용, 빈 자리는 <b>3안(카드 넘기기)</b>로 대체. <b>A안</b> 범례+더보기, <b>C안</b> 색상 바+키워드 칩.
     각 안마다 <span class="k">깔끔한 제목</span> · <span class="k">긴 제목</span>(말줄임표/멀티라인 토글) 두 케이스를 나란히 제공합니다. 이슈 탭 시 현재가 화면으로 이동합니다.
   </p>
 
@@ -251,40 +260,52 @@ function openScreen(phone, src){
 }
 function nav(el,it){ el.addEventListener('click',()=>openScreen(el.closest('.phone'),it.screen)); }
 
-/* ---------- 1안: 요약 → 이슈 카드 리스트 ---------- */
-function render1(w, mode, state){
+/* ---------- 3안: 이슈 카드 넘기기(캐러셀) ---------- */
+function render3(w, mode){
+  const cards=ISSUES.slice(0,5);
   const tc=titleClass(mode);
   w.innerHTML=`
-    <div class="wtitle"><h3>오늘의 이슈</h3><span class="sub">실시간 ${ISSUES.length}건</span></div>
-    <div class="sumcard ${state.open?'open':''}">
-      <div class="sumrow"><div class="lead">✨ 오늘 이슈 요약</div><span class="chev">▾</span></div>
-      <div class="sumtxt">HBM4 기대와 저평가 매수론이 부각된 한편, 외국인 순매도·차익실현 매물로 변동성이 큰 국면입니다.</div>
-      <div class="sumtags"><span class="chip up">호재 3</span><span class="chip down">악재 3</span><span class="chip news">소식 2</span></div>
-    </div>
-    <div class="expandable ${state.open?'open':''}"><div class="clist"></div></div>`;
-  const sum=w.querySelector('.sumcard'), exp=w.querySelector('.expandable'), list=w.querySelector('.clist');
-  sum.addEventListener('click',()=>{state.open=!state.open;sum.classList.toggle('open',state.open);exp.classList.toggle('open',state.open);});
-  ISSUES.forEach(it=>{
-    const c=document.createElement('div'); c.className='card';
-    c.innerHTML=`<span class="baricon ${it.k}"></span>
-      <div class="body"><div class="head"><span class="chip ${it.k}">${it.tag}</span></div>
-      <div class="h ${tc}">${titleField(it,mode)}</div><div class="meta">${it.m}</div></div><span class="chev">›</span>`;
-    nav(c,it); list.appendChild(c);
+    <div class="wtitle"><h3>이슈 카드</h3><span class="sub cnt"></span></div>
+    <div class="caro"><div class="caro-win"><div class="caro-track"></div></div>
+      <div class="caro-bar"><div class="dots"></div>
+        <div style="display:flex;gap:7px;"><button class="navbtn prev">‹</button><button class="navbtn next">›</button></div></div>
+    </div>`;
+  const track=w.querySelector('.caro-track'), dots=w.querySelector('.dots'), cnt=w.querySelector('.cnt');
+  let idx=0;
+  cards.forEach((it,i)=>{
+    const s=document.createElement('div'); s.className='slide '+it.k;
+    s.innerHTML=`<div><div class="stop"><div class="kind">${it.tag}</div><button class="go">›</button></div>
+      <div class="st ${tc}">${titleField(it,mode)}</div><div class="sd">${it.d}</div></div><div class="sm">${it.m}</div>`;
+    s.addEventListener('click',()=>go(idx+1));
+    s.querySelector('.go').addEventListener('click',e=>{e.stopPropagation();openScreen(s.closest('.phone'),it.screen);});
+    track.appendChild(s);
+    const d=document.createElement('span'); d.className='dot'+(i===0?' on':''); dots.appendChild(d);
   });
+  function go(n){idx=(n+cards.length)%cards.length;track.style.transform=`translateX(${-idx*100}%)`;
+    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===idx));cnt.textContent=`${idx+1} / ${cards.length}`;}
+  w.querySelector('.prev').onclick=()=>go(idx-1);
+  w.querySelector('.next').onclick=()=>go(idx+1);
+  go(0);
 }
 
-/* ---------- 5안: 요약 → 타임라인 ---------- */
+/* ---------- 5안: AI 요약 + (호재·악재 시각화) 펼치기 → 타임라인 ---------- */
 function render5(w, mode, state){
   const tc=titleClass(mode);
   const order=[ISSUES[0],ISSUES[3],ISSUES[4],ISSUES[1],ISSUES[6]];
+  const up=ISSUES.filter(i=>i.k==='up').length, dn=ISSUES.filter(i=>i.k==='down').length, nw=ISSUES.filter(i=>i.k==='news').length;
+  const tot=ISSUES.length;
   w.innerHTML=`
     <div class="ai-banner"><div class="t">✨ AI 이슈 요약</div>
       <div class="s">저평가 매수론이 부각됐으나 외국인 순매도·차익실현 매물로 단기 변동성이 큰 국면입니다.</div></div>
-    <button class="minbtn ${state.open?'open':''}" style="margin-top:12px;">호재·악재 타임라인 ${state.open?'접기':'펼치기'} <span class="ic">▾</span></button>
+    <div class="sumbar ${state.open?'open':''}">
+      <div class="top"><span class="lb">오늘 이슈 ${tot}건</span><span class="chev"><span class="ctxt">${state.open?'접기':'펼치기'}</span> <span class="ic">▾</span></span></div>
+      <div class="sentibar"><i class="su" style="width:${up/tot*100}%"></i><i class="sd" style="width:${dn/tot*100}%"></i><i class="sn" style="width:${nw/tot*100}%"></i></div>
+      <div class="sentimeta spread"><span class="u">호재 ${up}</span><span class="d">악재 ${dn}</span><span class="n">소식 ${nw}</span></div>
+    </div>
     <div class="expandable ${state.open?'open':''}" style="margin-top:12px;"><div class="tl"></div></div>`;
-  const btn=w.querySelector('.minbtn'), exp=w.querySelector('.expandable'), tl=w.querySelector('.tl');
-  btn.addEventListener('click',()=>{state.open=!state.open;btn.classList.toggle('open',state.open);exp.classList.toggle('open',state.open);
-    btn.firstChild.textContent=`호재·악재 타임라인 ${state.open?'접기':'펼치기'} `;});
+  const bar=w.querySelector('.sumbar'), exp=w.querySelector('.expandable'), tl=w.querySelector('.tl');
+  bar.addEventListener('click',()=>{state.open=!state.open;bar.classList.toggle('open',state.open);exp.classList.toggle('open',state.open);
+    bar.querySelector('.ctxt').textContent=state.open?'접기':'펼치기';});
   order.forEach(it=>{
     const el=document.createElement('div'); el.className='tl-item '+it.k;
     el.innerHTML=`<span class="node"></span><div class="tt ${tc}">${titleField(it,mode)}</div><div class="tm">${it.m}</div>`;
@@ -334,10 +355,10 @@ function renderC(w, mode){
 }
 
 /* ---------- 빌드 ---------- */
-const RENDERERS={1:render1,5:render5,A:renderA,C:renderC};
+const RENDERERS={3:render3,5:render5,A:renderA,C:renderC};
 const GROUPS=[
-  {key:'1', cls:'n1', title:'요약 + 이슈 리스트', sub:'요약 먼저 노출 → 탭하면 이슈 리스트 펼침'},
-  {key:'5', cls:'n5', title:'AI 요약 + 타임라인', sub:'AI 요약 + 컴팩트 더보기로 타임라인 펼침'},
+  {key:'3', cls:'n3', title:'이슈 카드 넘기기', sub:'클릭·화살표로 옆으로 넘기는 카드형 · › 상세 이동'},
+  {key:'5', cls:'n5', title:'AI 요약 + 타임라인', sub:'요약 바(호재·악재·소식 시각화) 펼치기 → 타임라인'},
   {key:'A', cls:'na', title:'리스트 + 색상 범례', sub:'컴팩트 범례 · 3건 노출 후 더보기로 펼침'},
   {key:'C', cls:'nc', title:'키워드 칩', sub:'색상 바·범례 + 키워드 칩 연속 배치'},
 ];
