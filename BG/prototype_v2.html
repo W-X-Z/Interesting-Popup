@@ -267,12 +267,11 @@ function render3(w, mode){
   const cards=ISSUES.slice(0,5);
   const tc=titleClass(mode);
   w.innerHTML=`
-    <div class="wtitle"><h3>이슈 카드</h3><span class="sub cnt"></span></div>
     <div class="caro"><div class="caro-win"><div class="caro-track"></div></div>
       <div class="caro-bar"><div class="dots"></div>
         <div style="display:flex;gap:7px;"><button class="navbtn prev">‹</button><button class="navbtn next">›</button></div></div>
     </div>`;
-  const track=w.querySelector('.caro-track'), dots=w.querySelector('.dots'), cnt=w.querySelector('.cnt');
+  const track=w.querySelector('.caro-track'), dots=w.querySelector('.dots');
   let idx=0;
   cards.forEach((it,i)=>{
     const s=document.createElement('div'); s.className='slide '+it.k;
@@ -284,7 +283,7 @@ function render3(w, mode){
     const d=document.createElement('span'); d.className='dot'+(i===0?' on':''); dots.appendChild(d);
   });
   function go(n){idx=(n+cards.length)%cards.length;track.style.transform=`translateX(${-idx*100}%)`;
-    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===idx));cnt.textContent=`${idx+1} / ${cards.length}`;}
+    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===idx));}
   w.querySelector('.prev').onclick=()=>go(idx-1);
   w.querySelector('.next').onclick=()=>go(idx+1);
   go(0);
@@ -338,7 +337,6 @@ function render6(w, mode, state){
 function renderA(w, mode, state){
   const tc=titleClass(mode);
   w.innerHTML=`
-    <div class="wtitle"><h3>종목 이슈</h3><span class="sub">오늘 ${ISSUES.length}건</span></div>
     <div class="legend-min">
       <span class="lg up"><i></i>호재</span><span class="lg down"><i></i>악재</span><span class="lg news"><i></i>소식</span>
     </div>
@@ -363,7 +361,6 @@ function renderC(w, mode){
   const up=ISSUES.filter(i=>i.k==='up').length, dn=ISSUES.filter(i=>i.k==='down').length, nw=ISSUES.filter(i=>i.k==='news').length;
   const tot=ISSUES.length;
   w.innerHTML=`
-    <div class="wtitle"><h3>종목 이슈</h3><span class="sub">오늘 ${tot}건</span></div>
     <div class="sentibar"><i class="su" style="width:${up/tot*100}%"></i><i class="sd" style="width:${dn/tot*100}%"></i><i class="sn" style="width:${nw/tot*100}%"></i></div>
     <div class="sentimeta"><span class="u">● 호재 ${up}</span><span class="d">● 악재 ${dn}</span><span class="n">● 소식 ${nw}</span></div>
     <div class="chipwrap"></div>`;
