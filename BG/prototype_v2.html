@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관심그룹 팝업 · 이슈 콘텐츠 v2 (피드백 반영)</title>
+<style>
+  :root{
+    --up:#f04452; --down:#3478f6; --news:#f59e0b;
+    --ink:#191f28; --sub:#6b7684; --line:#e9ecef;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b2330,#0e1116 60%);color:#e8edf4;padding:32px 20px 80px;}
+  h1{font-size:21px;font-weight:800;margin:0 0 6px;letter-spacing:-.3px;}
+  .lede{color:#9aa6b5;font-size:13px;margin:0 0 26px;line-height:1.7;max-width:860px;}
+  .lede b{color:#cdd6e2;}
+  .lede .k{background:#1b2330;padding:1px 7px;border-radius:6px;color:#aebccd;font-size:12px;}
+
+  .rail{display:flex;gap:34px;overflow-x:auto;padding:6px 4px 26px;}
+  .group{flex:0 0 auto;}
+  .gcap{font-size:15px;font-weight:800;margin:0 0 2px;color:#eaf0f7;letter-spacing:-.3px;}
+  .gcap .num{display:inline-block;color:#fff;border-radius:7px;padding:2px 9px;margin-right:8px;font-size:13px;}
+  .gcap .num.n3{background:#2b6cff;} .gcap .num.n5{background:#7a52ff;}
+  .gcap .num.na{background:#16a34a;} .gcap .num.nc{background:#e0683a;}
+  .gsub{font-size:12px;color:#8a96a6;margin:0 0 14px;}
+  .pair{display:flex;gap:18px;}
+  .stage{flex:0 0 auto;}
+  .vlabel{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#c6d0dc;margin:0 0 8px;height:26px;}
+  .vlabel .tag{font-size:11px;color:#8a96a6;font-weight:600;}
+  .seg{display:inline-flex;background:#1b2532;border:1px solid #2a3645;border-radius:9px;padding:2px;}
+  .seg button{border:0;background:none;color:#90a0b2;font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;cursor:pointer;}
+  .seg button.on{background:#33425a;color:#fff;}
+
+  /* ---- phone ---- */
+  .frame{width:356px;height:772px;overflow:hidden;border-radius:36px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.04) inset;position:relative;background:#000;}
+  .phone{width:540px;height:1170px;transform:scale(.66);transform-origin:0 0;position:relative;
+    background-image:url("assets/popup.png");background-size:540px 1170px;background-repeat:no-repeat;}
+  .viewport{position:absolute;left:197px;top:245px;width:343px;height:706px;overflow-y:auto;overflow-x:hidden;
+    background:#f8f8f8;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .viewport::-webkit-scrollbar{display:none;}
+  .segimg{display:block;width:343px;}
+  .widget{width:343px;background:#f8f8f8;padding:6px 16px 16px;position:relative;}
+
+  /* ---- landing ---- */
+  .landing{position:absolute;inset:0;z-index:50;background:#fff;transition:transform .26s cubic-bezier(.4,0,.2,1);}
+  .landing img{width:100%;height:100%;display:block;object-fit:cover;object-position:top;}
+  .back-hot{position:absolute;cursor:pointer;border-radius:8px;transition:background .12s;}
+  .back-hot.top{left:0;top:46px;width:130px;height:78px;}
+  .back-hot.bottom{left:300px;top:1104px;width:240px;height:66px;}
+  .back-hot:active{background:rgba(0,0,0,.10);}
+
+  /* ---- 공통 타이틀 오버플로 ---- */
+  .t-clean{}
+  .t-ellip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .t-multi{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+  .wtitle{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px;}
+  .wtitle h3{font-size:18px;font-weight:800;color:var(--ink);margin:0;letter-spacing:-.3px;}
+  .wtitle .sub{font-size:13px;color:var(--sub);}
+
+  .chip{font-size:13px;font-weight:800;border-radius:999px;padding:4px 10px;line-height:1;white-space:nowrap;}
+  .chip.up{color:var(--up);background:rgba(240,68,82,.10);}
+  .chip.down{color:var(--down);background:rgba(52,120,246,.10);}
+  .chip.news{color:#b8770a;background:rgba(245,158,11,.13);}
+
+  /* ---- 요약 카드 + 펼치기 (3·5안) ---- */
+  .sumcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;cursor:pointer;margin-bottom:12px;}
+  .sumrow{display:flex;align-items:center;justify-content:space-between;}
+  .sumrow .lead{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:-.3px;}
+  .sumrow .chev{color:#aab3bf;font-size:18px;transition:.25s;}
+  .sumcard.open .chev{transform:rotate(180deg);}
+  .sumtxt{font-size:14px;color:#46505d;line-height:1.55;margin-top:8px;}
+  .sumtags{display:flex;gap:7px;margin-top:11px;}
+  .expandable{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+  .expandable.open{max-height:1200px;}
+
+  /* ---- 3안 carousel ---- */
+  .caro{position:relative;}
+  .caro-win{overflow:hidden;border-radius:18px;}
+  .caro-track{display:flex;transition:transform .32s cubic-bezier(.4,0,.2,1);}
+  .slide{flex:0 0 100%;padding:17px;border-radius:18px;color:#fff;min-height:172px;
+    display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;}
+  .slide.up{background:linear-gradient(135deg,#ff5a6a,#e0303f);}
+  .slide.down{background:linear-gradient(135deg,#5a93ff,#2f63e0);}
+  .slide.news{background:linear-gradient(135deg,#ffb43d,#f0890c);}
+  .slide .stop{display:flex;justify-content:space-between;align-items:center;}
+  .slide .kind{font-size:13px;font-weight:800;opacity:.95;}
+  .slide .go{background:rgba(255,255,255,.22);border:0;color:#fff;width:28px;height:28px;border-radius:50%;font-size:18px;cursor:pointer;display:grid;place-items:center;}
+  .slide .st{font-size:21px;font-weight:800;line-height:1.36;letter-spacing:-.3px;margin-top:10px;min-height:28px;}
+  .slide .sd{font-size:14.5px;line-height:1.5;opacity:.95;margin-top:10px;}
+  .slide .sm{font-size:13px;opacity:.9;margin-top:12px;}
+  .caro-bar{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+  .dots{display:flex;gap:7px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:#d3d9e0;transition:.2s;}
+  .dot.on{width:20px;border-radius:4px;background:var(--ink);}
+  .navbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:16px;color:#46505d;cursor:pointer;display:grid;place-items:center;}
+
+  /* ---- 5안 timeline ---- */
+  .ai-banner{background:linear-gradient(135deg,#2b6cff,#6a3bff);color:#fff;border-radius:16px;padding:14px 16px;}
+  .ai-banner .t{font-size:13px;font-weight:800;opacity:.9;display:flex;align-items:center;gap:6px;}
+  .ai-banner .s{font-size:15px;font-weight:700;line-height:1.5;margin-top:7px;letter-spacing:-.3px;}
+  .tl{position:relative;padding-left:22px;margin-top:6px;}
+  .tl:before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--line);}
+  .tl-item{position:relative;padding:0 0 16px;cursor:pointer;}
+  .tl-item:last-child{padding-bottom:2px;}
+  .tl-item .node{position:absolute;left:-21px;top:4px;width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px currentColor;}
+  .tl-item.up .node{color:var(--up);background:var(--up);}
+  .tl-item.down .node{color:var(--down);background:var(--down);}
+  .tl-item.news .node{color:var(--news);background:var(--news);}
+  .tl-item .tt{font-size:16px;font-weight:700;color:var(--ink);line-height:1.4;letter-spacing:-.3px;}
+  .tl-item .tm{font-size:13px;color:var(--sub);margin-top:4px;}
+
+  /* ---- A안 list + 범례 ---- */
+  .legend{display:flex;align-items:center;flex-wrap:wrap;gap:12px;background:#fff;border:1px solid var(--line);
+    border-radius:14px;padding:11px 14px;margin-bottom:12px;}
+  .legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:var(--ink);}
+  .legend .lg i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .legend .lg.up i{background:var(--up);} .legend .lg.down i{background:var(--down);} .legend .lg.news i{background:var(--news);}
+  .legend .note{flex-basis:100%;font-size:12px;color:var(--sub);margin-top:2px;}
+  .list{background:#fff;border:1px solid var(--line);border-radius:14px;padding:2px 14px;}
+  .row{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer;}
+  .row:last-child{border-bottom:0;}
+  .rdot{flex:0 0 auto;width:9px;height:9px;border-radius:50%;margin-top:2px;align-self:flex-start;}
+  .rdot.up{background:var(--up);} .rdot.down{background:var(--down);} .rdot.news{background:var(--news);}
+  .rtitle{flex:1;min-width:0;font-size:16px;font-weight:600;color:var(--ink);line-height:1.4;}
+  .rtime{flex:0 0 auto;font-size:13px;color:var(--sub);align-self:flex-start;margin-top:1px;}
+
+  /* ---- C안 키워드 칩 ---- */
+  .chiplead{font-size:13.5px;color:var(--sub);margin:2px 0 12px;line-height:1.5;}
+  .chipsec{margin-bottom:14px;}
+  .chipsec .h4{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;margin:0 0 9px;}
+  .chipsec.up .h4{color:var(--up);} .chipsec.down .h4{color:var(--down);} .chipsec.news .h4{color:#b8770a;}
+  .chipsec .h4 i{width:9px;height:9px;border-radius:50%;background:currentColor;display:inline-block;}
+  .chipwrap{display:flex;flex-wrap:wrap;gap:9px;}
+  .kchip{border-radius:999px;padding:9px 14px;font-size:14.5px;font-weight:700;line-height:1.35;cursor:pointer;
+    border:1px solid transparent;transition:.15s;max-width:100%;}
+  .kchip:active{transform:scale(.96);}
+  .kchip.up{color:var(--up);background:rgba(240,68,82,.10);border-color:rgba(240,68,82,.22);}
+  .kchip.down{color:var(--down);background:rgba(52,120,246,.10);border-color:rgba(52,120,246,.22);}
+  .kchip.news{color:#b8770a;background:rgba(245,158,11,.13);border-color:rgba(245,158,11,.28);}
+  .kchip.t-ellip{max-width:170px;}
+  .kchip.t-multi{max-width:200px;white-space:normal;}
+
+  .hint{margin-top:34px;color:#7e8a99;font-size:12px;line-height:1.7;max-width:860px;}
+  .hint code{background:#1b2330;padding:1px 6px;border-radius:5px;color:#aebccd;}
+</style>
+</head>
+<body>
+  <h1>관심그룹 팝업 · 이슈 콘텐츠 v2 <span style="font-size:13px;color:#8a96a6;font-weight:600">(팀 피드백 반영)</span></h1>
+  <p class="lede">
+    피드백 반영: <b>① 폰트 확대</b> · <b>② 제목 오버플로(말줄임표·멀티라인) 비교</b> · <b>③ 4개 안만 유지</b>(1·2·4·B안 철폐).
+    <b>3·5안</b>은 <b>요약 먼저 노출 → 탭하면 호재·악재 펼침</b>, <b>A안</b>은 <b>색상 의미 범례</b> 추가, <b>C안</b>은 <b>키워드 칩</b>으로 변경.
+    각 안마다 <span class="k">깔끔한 제목</span> · <span class="k">긴 제목</span>(말줄임표/멀티라인 토글) 두 케이스를 나란히 제공합니다. 이슈 탭 시 현재가 화면으로 이동합니다.
+  </p>
+
+  <div class="rail" id="rail"></div>
+
+  <p class="hint">
+    배경 <code>popup.png</code> 위 스크롤 영역(<code>343×706</code>)에 콘텐츠를 올렸고, 폰 배율을 키워 글자 크기를 확대했습니다.
+    ‘긴 제목’ 프레임의 상단 토글로 <code>말줄임표(1줄)</code> ↔ <code>멀티라인(2줄)</code> 처리를 즉시 비교할 수 있습니다.
+  </p>
+
+<script>
+/* ---------- 데이터 ---------- */
+const ISSUES = [
+  {k:'up',  tag:'호재', kw:'HBM4 수혜',     time:'6시간 전', m:'6시간 전 · 한국경제', screen:'assets/scr_news.jpg',
+    short:'엔비디아 HBM4 조기 양산 요청',
+    long :'엔비디아가 차세대 AI 가속기용 HBM4 공급 일정을 앞당겨 달라고 공식 요청하며 선점 효과 부각',
+    d:'AI 가속기 수요로 HBM 선점 효과 기대'},
+  {k:'up',  tag:'호재', kw:'저평가 매수론',  time:'8시간 전', m:'8시간 전 · 한국경제', screen:'assets/scr_news.jpg',
+    short:'젠슨 황 "AI 관련주 매우 싸다"',
+    long :'엔비디아 CEO 젠슨 황이 컨퍼런스에서 AI 반도체 관련주의 주가가 매우 저평가돼 있다고 직접 언급',
+    d:'저평가 인식에 투자심리 일부 회복'},
+  {k:'up',  tag:'호재', kw:'단기 매수 유입', time:'9시간 전', m:'9시간 전 · 업계', screen:'assets/scr_invest.jpg',
+    short:'외국인 단타성 매수 일부 유입',
+    long :'장중 일부 외국인 투자자의 단기 매수세가 유입되며 낙폭과대 인식에 따른 저가 매수 관측',
+    d:'낙폭과대 저가 매수 유입'},
+  {k:'down',tag:'악재', kw:'외국인 순매도',  time:'1시간 전', m:'1시간 전 · 인포맥스', screen:'assets/scr_invest.jpg',
+    short:'외국인 5거래일 연속 순매도',
+    long :'외국인 투자자가 최근 5거래일 연속 매도 우위를 보이며 누적 순매도 규모가 확대되어 수급 부담 지속',
+    d:'연속 순매도로 수급 부담 지속'},
+  {k:'down',tag:'악재', kw:'주가 급락',      time:'3시간 전', m:'3시간 전 · 전자신문', screen:'assets/scr_daily.jpg',
+    short:'주가 단기 급락·차익실현',
+    long :'전일 급등 이후 차익실현 매물이 대거 출회되며 장중 주가가 단기 급락, 변동성 크게 확대',
+    d:'차익실현 매물로 변동성 확대'},
+  {k:'down',tag:'악재', kw:'현물가 조정',    time:'7시간 전', m:'7시간 전 · 머니투데이', screen:'assets/scr_daily.jpg',
+    short:'메모리 현물가 단기 조정',
+    long :'그간 급등하던 D램 현물 가격이 단기 과열 부담에 소폭 되돌림세를 보이며 조정 국면 진입',
+    d:'단기 과열에 현물가 되돌림'},
+  {k:'news',tag:'소식', kw:'주요 공시',      time:'어제',    m:'어제 · 공시', screen:'assets/scr_disc.jpg',
+    short:'분기보고서·자기주식 처분 공시',
+    long :'분기보고서 제출과 함께 자기주식 처분 결정 등 투자 판단에 영향을 줄 수 있는 주요 공시 업데이트',
+    d:'자기주식 처분 등 공시 업데이트'},
+  {k:'news',tag:'소식', kw:'증설 검토',      time:'어제',    m:'12시간 전 · 업계', screen:'assets/scr_disc.jpg',
+    short:'신규 후공정 라인 증설 검토',
+    long :'HBM 패키징 캐파 확대를 위한 신규 후공정 라인 증설을 검토 중인 것으로 알려져 이번 주 공시 전망',
+    d:'후공정 캐파 확대 검토'},
+];
+
+/* ---------- 공통 ---------- */
+function titleField(it, mode){ return mode==='clean' ? it.short : it.long; }
+function titleClass(mode){ return mode==='clean' ? 't-clean' : (mode==='ellipsis' ? 't-ellip' : 't-multi'); }
+
+function openScreen(phone, src){
+  if(phone.querySelector('.landing')) return;
+  const l=document.createElement('div'); l.className='landing'; l.style.transform='translateX(100%)';
+  l.innerHTML=`<img src="${src}" alt="현재가 상세 화면"><div class="back-hot top"></div><div class="back-hot bottom"></div>`;
+  const close=()=>{l.style.transform='translateX(100%)';l.addEventListener('transitionend',()=>l.remove(),{once:true});};
+  l.querySelectorAll('.back-hot').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();close();}));
+  phone.appendChild(l);
+  requestAnimationFrame(()=>l.style.transform='translateX(0)');
+}
+function nav(el,it){ el.addEventListener('click',()=>openScreen(el.closest('.phone'),it.screen)); }
+
+/* ---------- 3안: 요약 → 캐러셀 ---------- */
+function render3(w, mode, state){
+  const cards=ISSUES.slice(0,5);
+  const tc=titleClass(mode);
+  w.innerHTML=`
+    <div class="wtitle"><h3>이슈 카드</h3><span class="sub">실시간 ${ISSUES.length}건</span></div>
+    <div class="sumcard ${state.open?'open':''}">
+      <div class="sumrow"><div class="lead">✨ 오늘 이슈 요약</div><span class="chev">▾</span></div>
+      <div class="sumtxt">HBM4 기대와 저평가 매수론이 부각된 한편, 외국인 순매도·차익실현 매물로 변동성이 큰 국면입니다.</div>
+      <div class="sumtags"><span class="chip up">호재 3</span><span class="chip down">악재 3</span><span class="chip news">소식 2</span></div>
+    </div>
+    <div class="expandable ${state.open?'open':''}">
+      <div class="caro"><div class="caro-win"><div class="caro-track"></div></div>
+        <div class="caro-bar"><div class="dots"></div>
+          <div style="display:flex;gap:7px;"><button class="navbtn prev">‹</button><button class="navbtn next">›</button></div></div>
+      </div>
+    </div>`;
+  const sum=w.querySelector('.sumcard'), exp=w.querySelector('.expandable');
+  sum.addEventListener('click',()=>{state.open=!state.open;sum.classList.toggle('open',state.open);exp.classList.toggle('open',state.open);});
+  const track=w.querySelector('.caro-track'), dots=w.querySelector('.dots');
+  let idx=0;
+  cards.forEach((it,i)=>{
+    const s=document.createElement('div'); s.className='slide '+it.k;
+    s.innerHTML=`<div><div class="stop"><div class="kind">${it.tag}</div><button class="go">›</button></div>
+      <div class="st ${tc}">${titleField(it,mode)}</div><div class="sd">${it.d}</div></div><div class="sm">${it.m}</div>`;
+    s.addEventListener('click',()=>go(idx+1));
+    s.querySelector('.go').addEventListener('click',e=>{e.stopPropagation();openScreen(s.closest('.phone'),it.screen);});
+    track.appendChild(s);
+    const d=document.createElement('span'); d.className='dot'+(i===0?' on':''); dots.appendChild(d);
+  });
+  function go(n){idx=(n+cards.length)%cards.length;track.style.transform=`translateX(${-idx*100}%)`;
+    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===idx));}
+  w.querySelector('.prev').onclick=()=>go(idx-1);
+  w.querySelector('.next').onclick=()=>go(idx+1);
+}
+
+/* ---------- 5안: 요약 → 타임라인 ---------- */
+function render5(w, mode, state){
+  const tc=titleClass(mode);
+  const order=[ISSUES[0],ISSUES[3],ISSUES[4],ISSUES[1],ISSUES[6]];
+  w.innerHTML=`
+    <div class="ai-banner"><div class="t">✨ AI 이슈 요약</div>
+      <div class="s">저평가 매수론이 부각됐으나 외국인 순매도·차익실현 매물로 단기 변동성이 큰 국면입니다.</div></div>
+    <div class="sumcard ${state.open?'open':''}" style="margin-top:12px;">
+      <div class="sumrow"><div class="lead">호재·악재 타임라인</div><span class="chev">▾</span></div>
+      <div class="sumtxt">시간순 이슈 흐름을 펼쳐서 확인하세요 · 총 ${ISSUES.length}건</div>
+    </div>
+    <div class="expandable ${state.open?'open':''}"><div class="tl"></div></div>`;
+  const sum=w.querySelector('.sumcard'), exp=w.querySelector('.expandable'), tl=w.querySelector('.tl');
+  sum.addEventListener('click',()=>{state.open=!state.open;sum.classList.toggle('open',state.open);exp.classList.toggle('open',state.open);});
+  order.forEach(it=>{
+    const el=document.createElement('div'); el.className='tl-item '+it.k;
+    el.innerHTML=`<span class="node"></span><div class="tt ${tc}">${titleField(it,mode)}</div><div class="tm">${it.m}</div>`;
+    nav(el,it); tl.appendChild(el);
+  });
+}
+
+/* ---------- A안: 범례 + 리스트 ---------- */
+function renderA(w, mode){
+  const tc=titleClass(mode);
+  w.innerHTML=`
+    <div class="wtitle"><h3>종목 이슈</h3><span class="sub">오늘 ${ISSUES.length}건</span></div>
+    <div class="legend">
+      <span class="lg up"><i></i>호재</span><span class="lg down"><i></i>악재</span><span class="lg news"><i></i>소식</span>
+      <span class="note">왼쪽 색 점으로 이슈 성격(호재·악재·소식)을 구분해요</span>
+    </div>
+    <div class="list"></div>`;
+  const list=w.querySelector('.list');
+  ISSUES.forEach(it=>{
+    const r=document.createElement('div'); r.className='row';
+    r.innerHTML=`<span class="rdot ${it.k}"></span><span class="rtitle ${tc}">${titleField(it,mode)}</span><span class="rtime">${it.time}</span>`;
+    nav(r,it); list.appendChild(r);
+  });
+}
+
+/* ---------- C안: 키워드 칩 ---------- */
+function renderC(w, mode){
+  const tc=titleClass(mode);
+  const text=it=> mode==='clean' ? it.kw : it.long;
+  w.innerHTML=`
+    <div class="wtitle"><h3>종목 이슈</h3><span class="sub">오늘 ${ISSUES.length}건</span></div>
+    <div class="chiplead">키워드 칩으로 호재·악재·소식을 한눈에 · 탭하면 상세로 이동해요</div>
+    <div class="chipsec up"><div class="h4"><i></i>호재</div><div class="chipwrap" data-up></div></div>
+    <div class="chipsec down"><div class="h4"><i></i>악재</div><div class="chipwrap" data-down></div></div>
+    <div class="chipsec news"><div class="h4"><i></i>소식</div><div class="chipwrap" data-news></div></div>`;
+  ['up','down','news'].forEach(kind=>{
+    const wrap=w.querySelector(`[data-${kind}]`);
+    ISSUES.filter(i=>i.k===kind).forEach(it=>{
+      const c=document.createElement('div'); c.className=`kchip ${it.k} ${tc}`; c.textContent=text(it);
+      nav(c,it); wrap.appendChild(c);
+    });
+  });
+}
+
+/* ---------- 빌드 ---------- */
+const RENDERERS={3:render3,5:render5,A:renderA,C:renderC};
+const GROUPS=[
+  {key:'3', cls:'n3', title:'이슈 카드 넘기기', sub:'요약 먼저 노출 → 탭하면 호재·악재 카드 펼침'},
+  {key:'5', cls:'n5', title:'AI 요약 + 타임라인', sub:'요약 먼저 노출 → 탭하면 시간순 타임라인 펼침'},
+  {key:'A', cls:'na', title:'리스트 + 색상 범례', sub:'콘텐츠 위에 색상 의미(호재·악재·소식) 안내'},
+  {key:'C', cls:'nc', title:'키워드 칩', sub:'호재·악재·소식을 키워드 칩으로 빠르게 스캔'},
+];
+
+function frameHTML(){
+  return `<div class="frame"><div class="phone"><div class="viewport">
+    <img class="segimg" src="assets/tobe_top.png" alt="">
+    <div class="widget"></div>
+    <img class="segimg" src="assets/tobe_bottom.png" alt="">
+  </div></div></div>`;
+}
+
+const rail=document.getElementById('rail');
+GROUPS.forEach(g=>{
+  const sec=document.createElement('section'); sec.className='group';
+  sec.innerHTML=`
+    <div class="gcap"><span class="num ${g.cls}">${g.key}안</span>${g.title}</div>
+    <div class="gsub">${g.sub}</div>
+    <div class="pair">
+      <div class="stage clean">
+        <div class="vlabel">깔끔한 제목 <span class="tag">짧은 케이스</span></div>
+        ${frameHTML()}
+      </div>
+      <div class="stage long">
+        <div class="vlabel">긴 제목
+          <span class="seg"><button data-of="ellipsis" class="on">말줄임표</button><button data-of="multiline">멀티라인</button></span>
+        </div>
+        ${frameHTML()}
+      </div>
+    </div>`;
+  rail.appendChild(sec);
+
+  const fn=RENDERERS[g.key];
+  // clean
+  const cleanW=sec.querySelector('.stage.clean .widget');
+  fn(cleanW,'clean',{open:false});
+  // long (toggle)
+  const longStage=sec.querySelector('.stage.long');
+  const longW=longStage.querySelector('.widget');
+  const st={open:false};
+  let of='ellipsis';
+  fn(longW, of, st);
+  longStage.querySelectorAll('.seg button').forEach(b=>{
+    b.onclick=()=>{
+      longStage.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); of=b.dataset.of; fn(longW, of, st);
+    };
+  });
+});
+</script>
+</body>
+</html>
