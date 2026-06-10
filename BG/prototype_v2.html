@@ -17,12 +17,17 @@
   .lede b{color:#cdd6e2;}
   .lede .k{background:#1b2330;padding:1px 7px;border-radius:6px;color:#aebccd;font-size:12px;}
 
+  .globalctl{display:inline-flex;align-items:center;gap:12px;background:#161d28;border:1px solid #2a3645;
+    border-radius:12px;padding:9px 14px;margin:0 0 26px;}
+  .globalctl .gl{font-size:13px;font-weight:800;color:#cdd6e2;letter-spacing:-.2px;}
+  .globalctl .gl .sm{font-size:11.5px;font-weight:600;color:#8a96a6;margin-left:6px;}
+
   .rail{display:flex;gap:34px;overflow-x:auto;padding:6px 4px 26px;}
   .group{flex:0 0 auto;}
   .gcap{font-size:15px;font-weight:800;margin:0 0 2px;color:#eaf0f7;letter-spacing:-.3px;}
   .gcap .num{display:inline-block;color:#fff;border-radius:7px;padding:2px 9px;margin-right:8px;font-size:13px;}
-  .gcap .num.n1{background:#2b6cff;} .gcap .num.n3{background:#2b6cff;} .gcap .num.n5{background:#7a52ff;} .gcap .num.n6{background:#2bb0a3;}
-  .gcap .num.na{background:#16a34a;} .gcap .num.nc{background:#e0683a;}
+  .gcap .num.n1{background:#2b6cff;} .gcap .num.n2{background:#7a52ff;} .gcap .num.n3{background:#2bb0a3;}
+  .gcap .num.n4{background:#16a34a;} .gcap .num.n5{background:#e0683a;} .gcap .num.n6{background:#d6457a;}
   .gsub{font-size:12px;color:#8a96a6;margin:0 0 14px;}
   .pair{display:flex;gap:18px;}
   .stage{flex:0 0 auto;}
@@ -184,6 +189,17 @@
   .sentimeta.spread{justify-content:space-between;gap:0;margin-bottom:0;}
   .sentimeta .u{color:var(--up);} .sentimeta .d{color:var(--down);} .sentimeta .n{color:#b8770a;}
 
+  /* ---- 2분할(호재·악재) ---- */
+  .cols{display:flex;gap:10px;}
+  .col{flex:1;min-width:0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 13px;}
+  .col h4{font-size:14px;font-weight:800;margin:0 0 6px;display:flex;align-items:center;gap:6px;}
+  .col h4 i{width:9px;height:9px;border-radius:50%;background:currentColor;display:inline-block;}
+  .col.up h4{color:var(--up);} .col.down h4{color:var(--down);}
+  .citem{font-size:14px;color:var(--ink);line-height:1.35;padding:9px 0;border-top:1px solid var(--line);cursor:pointer;}
+  .citem.t-ellip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .citem.t-multi{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .col h4 + .citem{border-top:0;}
+
   /* ---- 5안 요약 바(펼치기) ---- */
   .sumbar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 15px;cursor:pointer;margin-top:12px;}
   .sumbar .sbrow{display:flex;align-items:center;justify-content:space-between;margin-top:9px;}
@@ -200,9 +216,14 @@
 <body>
   <h1>관심그룹 팝업 · 이슈 콘텐츠 v2 <span style="font-size:13px;color:#8a96a6;font-weight:600">(팀 피드백 반영)</span></h1>
   <p class="lede">
-    총 <b>5개 안</b>: <b>3안</b> 카드 넘기기, <b>5안</b> AI요약+시각화 펼치기, <b>6안</b> AI요약+텍스트 펼치기(시각화 없음), <b>A안</b> 리스트+범례, <b>C안</b> 색상 바+키워드 칩.
-    각 안마다 <span class="k">깔끔한 제목</span> · <span class="k">긴 제목</span>(말줄임표/멀티라인 토글) 두 케이스를 나란히 제공합니다. 이슈 탭 시 현재가 화면으로 이동합니다.
+    총 <b>6개 안</b>: <b>1안</b> 카드 넘기기, <b>2안</b> AI요약+시각화 펼치기, <b>3안</b> AI요약+텍스트 펼치기(시각화 없음), <b>4안</b> 리스트+범례, <b>5안</b> 키워드 칩, <b>6안</b> 호재·악재 2분할.
+    각 안마다 <span class="k">깔끔한 제목</span> · <span class="k">긴 제목</span> 두 케이스를 나란히 제공하며, 긴 제목의 <span class="k">말줄임표/멀티라인</span>은 상단 글로벌 토글로 한 번에 전환합니다. 이슈 탭 시 현재가 화면으로 이동합니다.
   </p>
+
+  <div class="globalctl" id="globalctl">
+    <span class="gl">긴 제목 처리<span class="sm">모든 시안 공통 적용</span></span>
+    <span class="seg"><button data-of="ellipsis" class="on">말줄임표</button><button data-of="multiline">멀티라인</button></span>
+  </div>
 
   <div class="rail" id="rail"></div>
 
@@ -376,14 +397,36 @@ function renderC(w, mode){
   });
 }
 
+/* ---------- 6안(기존 C안): 호재·악재 2분할 한눈 보기 ---------- */
+function renderD(w, mode){
+  const tc=titleClass(mode);
+  const text=it=> mode==='clean' ? it.kw : it.short;
+  const ups=ISSUES.filter(i=>i.k==='up').slice(0,3);
+  const dns=ISSUES.filter(i=>i.k==='down').slice(0,3);
+  const up=ISSUES.filter(i=>i.k==='up').length, dn=ISSUES.filter(i=>i.k==='down').length;
+  const tot=up+dn;
+  w.innerHTML=`
+    <div class="sentibar"><i class="su" style="width:${up/tot*100}%"></i><i class="sd" style="width:${dn/tot*100}%"></i></div>
+    <div class="sentimeta spread"><span class="u">호재 ${up}</span><span class="d">악재 ${dn}</span></div>
+    <div class="cols">
+      <div class="col up"><h4><i></i>호재</h4><div class="cu"></div></div>
+      <div class="col down"><h4><i></i>악재</h4><div class="cd"></div></div>
+    </div>`;
+  const cu=w.querySelector('.cu'), cd=w.querySelector('.cd');
+  const cItem=it=>{const d=document.createElement('div');d.className='citem '+tc;d.textContent=text(it);nav(d,it);return d;};
+  ups.forEach(it=>cu.appendChild(cItem(it)));
+  dns.forEach(it=>cd.appendChild(cItem(it)));
+}
+
 /* ---------- 빌드 ---------- */
-const RENDERERS={3:render3,5:render5,6:render6,A:renderA,C:renderC};
+const RENDERERS={3:render3,5:render5,6:render6,A:renderA,C:renderC,D:renderD};
 const GROUPS=[
-  {key:'3', cls:'n3', title:'이슈 카드 넘기기', sub:'클릭·화살표로 옆으로 넘기는 카드형 · › 상세 이동'},
-  {key:'5', cls:'n5', title:'AI 요약 + 타임라인 (시각화)', sub:'호재·악재·소식 시각화 바로 펼치기 → 타임라인'},
-  {key:'6', cls:'n6', title:'AI 요약 + 타임라인 (텍스트)', sub:'시각화 없이 ‘펼치기’ 텍스트만 → 타임라인'},
-  {key:'A', cls:'na', title:'리스트 + 색상 범례', sub:'컴팩트 범례 · 3건 노출 후 더보기로 펼침'},
-  {key:'C', cls:'nc', title:'키워드 칩', sub:'색상 바·범례 + 키워드 칩 연속 배치'},
+  {n:'1', r:'3', cls:'n1', title:'이슈 카드 넘기기', sub:'클릭·화살표로 옆으로 넘기는 카드형 · › 상세 이동'},
+  {n:'2', r:'5', cls:'n2', title:'AI 요약 + 타임라인 (시각화)', sub:'호재·악재·소식 시각화 바로 펼치기 → 타임라인'},
+  {n:'3', r:'6', cls:'n3', title:'AI 요약 + 타임라인 (텍스트)', sub:'시각화 없이 ‘펼치기’ 텍스트만 → 타임라인'},
+  {n:'4', r:'A', cls:'n4', title:'리스트 + 색상 범례', sub:'컴팩트 범례 · 3건 노출 후 더보기로 펼침'},
+  {n:'5', r:'C', cls:'n5', title:'키워드 칩', sub:'색상 바·범례 + 키워드 칩 연속 배치'},
+  {n:'6', r:'D', cls:'n6', title:'호재·악재 2분할', sub:'2열로 6건 동시 노출 · 탭하면 상세 이동'},
 ];
 
 function frameHTML(){
@@ -395,10 +438,12 @@ function frameHTML(){
 }
 
 const rail=document.getElementById('rail');
+let globalOf='ellipsis';
+const longs=[];
 GROUPS.forEach(g=>{
   const sec=document.createElement('section'); sec.className='group';
   sec.innerHTML=`
-    <div class="gcap"><span class="num ${g.cls}">${g.key}안</span>${g.title}</div>
+    <div class="gcap"><span class="num ${g.cls}">${g.n}안</span>${g.title}</div>
     <div class="gsub">${g.sub}</div>
     <div class="pair">
       <div class="stage clean">
@@ -406,30 +451,30 @@ GROUPS.forEach(g=>{
         ${frameHTML()}
       </div>
       <div class="stage long">
-        <div class="vlabel">긴 제목
-          <span class="seg"><button data-of="ellipsis" class="on">말줄임표</button><button data-of="multiline">멀티라인</button></span>
-        </div>
+        <div class="vlabel">긴 제목 <span class="tag">상단 토글 적용</span></div>
         ${frameHTML()}
       </div>
     </div>`;
   rail.appendChild(sec);
 
-  const fn=RENDERERS[g.key];
+  const fn=RENDERERS[g.r];
   // clean
   const cleanW=sec.querySelector('.stage.clean .widget');
   fn(cleanW,'clean',{open:false});
-  // long (toggle)
-  const longStage=sec.querySelector('.stage.long');
-  const longW=longStage.querySelector('.widget');
+  // long (글로벌 토글 적용)
+  const longW=sec.querySelector('.stage.long .widget');
   const st={open:false};
-  let of='ellipsis';
-  fn(longW, of, st);
-  longStage.querySelectorAll('.seg button').forEach(b=>{
-    b.onclick=()=>{
-      longStage.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on'); of=b.dataset.of; fn(longW, of, st);
-    };
-  });
+  fn(longW, globalOf, st);
+  longs.push({w:longW, fn, st});
+});
+
+// 글로벌 말줄임표/멀티라인 토글
+document.querySelectorAll('#globalctl .seg button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#globalctl .seg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); globalOf=b.dataset.of;
+    longs.forEach(o=>o.fn(o.w, globalOf, o.st));
+  };
 });
 </script>
 </body>
