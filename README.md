@@ -5,7 +5,6 @@
 ## 🔗 데모 (GitHub Pages)
 
 - 허브: https://w-x-z.github.io/Interesting-Popup/
-- 급등락 원인 설명 시안(새 URL): https://w-x-z.github.io/Interesting-Popup/BG/prototype_v3_reason.html
 - v4 · 커뮤니티 시그널(최신): https://w-x-z.github.io/Interesting-Popup/v4/
 - v3 · 최근 소식 카드: https://w-x-z.github.io/Interesting-Popup/v3/
 - v2 · ①왜 움직였을까 / ②10초 요약: https://w-x-z.github.io/Interesting-Popup/v2/
@@ -15,7 +14,6 @@
 
 | 버전 | 설명 |
 |------|------|
-| **BG/prototype_v3_reason** | `2안 원인 설명 버전`. 기존 `BG/prototype_v3.html`은 유지하고, 새 URL에서만 AI 이슈 요약을 실제 현재 수집 이슈 기반 `왜 급등락했을까` 콘텐츠로 대체. |
 | **v4** | `커뮤니티 시그널`. 관심그룹 팝업 안 **하나의 소재 카드**로 추가(v3 룩앤필 유지). 투자자들이 커뮤니티에 올린 **게시글**을 집계해 호재·악재 판단 재료로 변환. 시그널 행을 펼치면 긍·부정 감성 비중과 함께 **실제 게시글이 근거**로 노출. |
 | **v3** | 기존 앱 룩앤필 그대로 + 팝업 내 `최근 소식` 카드만 자연스러운 접힘/펼침으로 개발. 펼치면 차트가 실제로 아래로 밀리고, 항목별 근거가 2단 아코디언으로 열림. |
 | **v2** | `①왜 움직였을까` `②10초 요약` 두 아이디어 완성본. 카드/행 탭 인터랙션 + 실제 캡처 겹쳐보기(키보드 `C`)로 영역 정합 확인. |
